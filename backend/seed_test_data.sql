@@ -1,0 +1,10 @@
+INSERT INTO tahun_ajaran (tahun, status) VALUES ('2025/2026', 'aktif');
+INSERT INTO kelas (nama_kelas, id_tahun_ajaran) VALUES ('TK A', 1), ('TK B', 1);
+INSERT INTO anak (nama_anak, nisn, jenis_kelamin, tanggal_lahir, id_kelas, id_ortu) VALUES ('Ani Wijaya', '9988776655', 'P', '2020-05-15', 1, 4);
+INSERT INTO anak (nama_anak, nisn, jenis_kelamin, tanggal_lahir, id_kelas, id_ortu) VALUES ('Budi Santoso', '1122334455', 'L', '2020-08-20', 1, 4);
+INSERT INTO aspek_penilaian (nama_aspek) VALUES ('Nilai Agama Dan Moral');
+INSERT INTO aspek_penilaian (nama_aspek) VALUES ('Fisik Motorik');
+INSERT INTO aspek_penilaian (nama_aspek) VALUES ('Kognitif');
+INSERT INTO aspek_penilaian (nama_aspek) VALUES ('Bahasa');
+INSERT INTO aspek_penilaian (nama_aspek) VALUES ('Sosial Emosional');
+INSERT INTO aspek_penilaian (nama_aspek) VALUES ('Seni');

@@ -1,0 +1,15 @@
+{
+  "action": "add",
+  "id_guru": 2,
+  "id_siswa": 1,
+  "id_aspek": 1,
+  "id_kegiatan": 1,
+  "tanggal": "2026-06-16",
+  "semester": 1,
+  "minggu_ke": 1,
+  "status": "M",
+  "konteks": "Anak melaksanakan sholat bersama",
+  "hasil": "Anak mampu melakukan gerakan sholat dengan benar",
+  "kejadian": "Saat sholat duha, anak fokus mengikuti gerakan",
+  "catatan": "Baik sekali"
+}

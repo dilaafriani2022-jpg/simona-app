@@ -1,0 +1,15 @@
+{
+  "action": "add",
+  "id_siswa": 1,
+  "id_guru": 2,
+  "id_aspek": 1,
+  "id_kegiatan": 3,
+  "tanggal": "2026-06-16",
+  "semester": 1,
+  "minggu_ke": 1,
+  "status": "MM",
+  "konteks": "Konteks via API",
+  "hasil": "Hasil via API",
+  "kejadian": "Kejadian via API",
+  "catatan": "Catatan via API"
+}

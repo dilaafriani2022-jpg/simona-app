@@ -1,0 +1,14 @@
+{
+  "action": "add",
+  "id_guru": 2,
+  "id_siswa": 1,
+  "id_aspek": 1,
+  "tanggal": "2026-06-16",
+  "semester": 1,
+  "minggu_ke": 1,
+  "status": "M",
+  "konteks": "test konteks",
+  "hasil": "test hasil",
+  "kejadian": "test kejadian",
+  "catatan": "test catatan"
+}

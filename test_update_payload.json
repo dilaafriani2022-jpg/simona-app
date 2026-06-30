@@ -1,0 +1,15 @@
+{
+  "action": "update",
+  "id": 2,
+  "id_guru": 2,
+  "id_siswa": 1,
+  "id_aspek": 2,
+  "tanggal": "2026-06-17",
+  "semester": 1,
+  "minggu_ke": 2,
+  "status": "MM",
+  "konteks": "konteks yang diupdate",
+  "hasil": "hasil yang diupdate",
+  "kejadian": "kejadian yang diupdate",
+  "catatan": "catatan yang diupdate"
+}

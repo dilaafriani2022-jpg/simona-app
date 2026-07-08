@@ -1,4 +1,8 @@
 <?php
+// Sembunyikan output error PHP agar tidak merusak format JSON di Flutter
+error_reporting(0);
+ini_set('display_errors', 0);
+
 // Nonaktifkan mode strict exception agar error MySQL tidak jadi HTML output
 mysqli_report(MYSQLI_REPORT_OFF);
 

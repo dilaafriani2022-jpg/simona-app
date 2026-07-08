@@ -744,10 +744,11 @@ class _ManageOrtuScreenState extends State<ManageOrtuScreen> {
             _fField(ayahNamaCtrl, Icons.badge_rounded, 'Nama sesuai KTP', stepColors[0]),
             if (ayahStatus == 'Hidup') ...[
               const SizedBox(height: 14),
-              _formRow([
-                _fCol('NIK Ayah', _fFieldNum(ayahNikCtrl, Icons.credit_card_rounded, '16 digit NIK', stepColors[0])),
-                _fCol('Tempat, Tanggal Lahir', _fField(ayahTtlCtrl, Icons.cake_rounded, 'Bengkalis, 12 Januari 1985', stepColors[0])),
-              ]),
+              _fLabel('NIK Ayah'),
+              _fFieldNum(ayahNikCtrl, Icons.credit_card_rounded, '16 digit NIK', stepColors[0]),
+              const SizedBox(height: 14),
+              _fLabel('Tempat, Tanggal Lahir Ayah'),
+              _fField(ayahTtlCtrl, Icons.cake_rounded, 'Bengkalis, 12 Januari 1985', stepColors[0]),
               const SizedBox(height: 14),
               _formRow([
                 _fCol('Agama', _fDropStr(value: ayahAgamaCtrl.text, items: agamaList, hint: 'Pilih agama', icon: Icons.mosque_rounded, color: stepColors[0], onChanged: (v) => setSheet(() => ayahAgamaCtrl.text = v ?? ''))),
@@ -780,10 +781,11 @@ class _ManageOrtuScreenState extends State<ManageOrtuScreen> {
             _fField(ibuNamaCtrl, Icons.badge_rounded, 'Nama sesuai KTP', stepColors[1]),
             if (ibuStatus == 'Hidup') ...[
               const SizedBox(height: 14),
-              _formRow([
-                _fCol('NIK Ibu', _fFieldNum(ibuNikCtrl, Icons.credit_card_rounded, '16 digit NIK', stepColors[1])),
-                _fCol('Tempat, Tanggal Lahir', _fField(ibuTtlCtrl, Icons.cake_rounded, 'Bengkalis, 5 Maret 1988', stepColors[1])),
-              ]),
+              _fLabel('NIK Ibu'),
+              _fFieldNum(ibuNikCtrl, Icons.credit_card_rounded, '16 digit NIK', stepColors[1]),
+              const SizedBox(height: 14),
+              _fLabel('Tempat, Tanggal Lahir Ibu'),
+              _fField(ibuTtlCtrl, Icons.cake_rounded, 'Bengkalis, 5 Maret 1988', stepColors[1]),
               const SizedBox(height: 14),
               _formRow([
                 _fCol('Agama', _fDropStr(value: ibuAgamaCtrl.text, items: agamaList, hint: 'Pilih agama', icon: Icons.mosque_rounded, color: stepColors[1], onChanged: (v) => setSheet(() => ibuAgamaCtrl.text = v ?? ''))),
@@ -807,10 +809,11 @@ class _ManageOrtuScreenState extends State<ManageOrtuScreen> {
             _fLabel('Nama Wali (opsional)'),
             _fField(waliNamaCtrl, Icons.person_rounded, 'Nama lengkap wali', stepColors[2]),
             const SizedBox(height: 14),
-            _formRow([
-              _fCol('Hubungan dengan Anak', _fField(waliHubunganCtrl, Icons.family_restroom_rounded, 'Kakek, Paman…', stepColors[2])),
-              _fCol('No. HP Wali', _fFieldNum(waliHpCtrl, Icons.phone_rounded, '08xxxxxxxxxx', stepColors[2])),
-            ]),
+            _fLabel('Hubungan dengan Anak'),
+            _fField(waliHubunganCtrl, Icons.family_restroom_rounded, 'Kakek, Paman, Nenek…', stepColors[2]),
+            const SizedBox(height: 14),
+            _fLabel('No. HP Wali'),
+            _fFieldNum(waliHpCtrl, Icons.phone_rounded, '08xxxxxxxxxx', stepColors[2]),
             const SizedBox(height: 14),
             _fLabel('Pekerjaan Wali'),
             _fField(waliKerjaCtrl, Icons.work_rounded, 'Pekerjaan wali', stepColors[2]),
@@ -950,8 +953,10 @@ class _ManageOrtuScreenState extends State<ManageOrtuScreen> {
             return null;
           }
 
+          final mq = MediaQuery.of(ctx);
+
           return Container(
-            height: MediaQuery.of(ctx).size.height * 0.93,
+            height: mq.size.height * 0.93,
             decoration: BoxDecoration(
               color: _bg,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
@@ -1040,7 +1045,7 @@ class _ManageOrtuScreenState extends State<ManageOrtuScreen> {
               // Scrollable content
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, mq.viewInsets.bottom + 16),
                   child: _formSection(
                     icon: stepIcons[currentStep],
                     title: stepTitles[currentStep],
@@ -1058,7 +1063,7 @@ class _ManageOrtuScreenState extends State<ManageOrtuScreen> {
 
               // Bottom nav
               Container(
-                padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(ctx).padding.bottom + 12),
+                padding: EdgeInsets.fromLTRB(16, 12, 16, mq.padding.bottom + 12),
                 decoration: BoxDecoration(
                   color: _surface,
                   boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, -4))],
@@ -1105,15 +1110,7 @@ class _ManageOrtuScreenState extends State<ManageOrtuScreen> {
 
                         setSheet(() => isSaving = true);
 
-                        final alamatLengkap = [
-                          alamatCtrl.text.trim(),
-                          rtRwCtrl.text.trim().isNotEmpty ? 'RT/RW ${rtRwCtrl.text.trim()}' : '',
-                          kelurahanCtrl.text.trim(),
-                          kecamatanCtrl.text.trim(),
-                          kotaCtrl.text.trim(),
-                          provinsiCtrl.text.trim(),
-                          kodeposCtrl.text.trim(),
-                        ].where((s) => s.isNotEmpty).join(', ');
+
 
                         try {
                           Map<String, dynamic> res;
@@ -1125,7 +1122,7 @@ class _ManageOrtuScreenState extends State<ManageOrtuScreen> {
                             'name': primaryName,
                             'no_hp': primaryHp,
                             'pekerjaan': primaryJob,
-                            'alamat': alamatLengkap,
+                            'alamat': alamatCtrl.text.trim(),
                             'email': emailCtrl.text.trim(),
                             'ayah_nama': ayahNamaCtrl.text.trim(),
                             'ayah_nik': ayahStatus == 'Hidup' ? ayahNikCtrl.text.trim() : '',
@@ -1669,23 +1666,24 @@ class _ManageOrtuScreenState extends State<ManageOrtuScreen> {
   Widget _statChip(IconData icon, String value, String label, Color color, {bool light = false}) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
           color: _surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _border),
+          border: Border.all(color: color.withOpacity(0.25)),
           boxShadow: [BoxShadow(color: _primary.withOpacity(0.04), blurRadius: 6, offset: const Offset(0, 2))],
         ),
         child: Row(children: [
           Container(
-            padding: const EdgeInsets.all(7),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(9)),
-            child: Icon(icon, size: 16, color: color),
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(9)),
+            child: Icon(icon, size: 15, color: color),
           ),
           const SizedBox(width: 8),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color)),
-            Text(label, style: const TextStyle(fontSize: 10, color: _textHint, fontWeight: FontWeight.w500),
+            Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: color, height: 1.1)),
+            Text(label,
+                style: const TextStyle(fontSize: 11, color: _textSub, fontWeight: FontWeight.w500, height: 1.2),
                 overflow: TextOverflow.ellipsis),
           ])),
         ]),

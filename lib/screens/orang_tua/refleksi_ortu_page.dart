@@ -420,6 +420,10 @@ class _RefleksiOrtuPageState extends State<RefleksiOrtuPage> {
         final pencapaian = (r['pencapaian'] ?? '').toString();
         final hambatan   = (r['hambatan']   ?? '').toString();
         final solusi     = (r['solusi']     ?? '').toString();
+        final rencanaTindakLanjut = (r['rencana_tindak_lanjut'] ?? '').toString();
+        final catatanPerilaku = (r['catatan_perilaku'] ?? '').toString();
+        final catatanPembelajaran = (r['catatan_pembelajaran'] ?? '').toString();
+        final catatanSosial = (r['catatan_sosial'] ?? '').toString();
         final tanggal    = (r['tanggal']    ?? '').toString();
         final dateStr    = tanggal.length >= 10 ? tanggal.substring(0, 10) : tanggal;
 
@@ -484,6 +488,26 @@ class _RefleksiOrtuPageState extends State<RefleksiOrtuPage> {
                 _ortuGuruSection('Solusi', solusi,
                     Colors.blue.shade600, Colors.blue.shade50),
               ],
+              if (rencanaTindakLanjut.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _ortuGuruSection('Rencana Tindak Lanjut', rencanaTindakLanjut,
+                    Colors.teal.shade700, Colors.teal.shade50),
+              ],
+              if (catatanPerilaku.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _ortuGuruSection('Catatan Perilaku Anak', catatanPerilaku,
+                    Colors.orange.shade700, Colors.orange.shade50),
+              ],
+              if (catatanPembelajaran.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _ortuGuruSection('Catatan Pembelajaran', catatanPembelajaran,
+                    Colors.purple.shade700, Colors.purple.shade50),
+              ],
+              if (catatanSosial.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _ortuGuruSection('Catatan Sosial', catatanSosial,
+                    Colors.indigo.shade700, Colors.indigo.shade50),
+              ],
             ]),
           ),
         );
@@ -516,6 +540,183 @@ class _RefleksiOrtuPageState extends State<RefleksiOrtuPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmDelete(Map<String, dynamic> item, int index) async {
+    final id = int.tryParse(item['id']?.toString() ?? '0') ?? 0;
+    if (id == 0) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Hapus Refleksi?', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('Apakah Anda yakin ingin menghapus refleksi ini? Tindakan ini tidak dapat dibatalkan.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Hapus', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        final res = await ApiService.submitRefleksiOrtu({
+          'action': 'delete',
+          'id': id,
+        });
+        if (res['status'] == 'success') {
+          setState(() {
+            _myRefleksi.removeAt(index);
+          });
+          widget.onRefresh();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Refleksi berhasil dihapus'),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(res['message'] ?? 'Gagal menghapus')),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _showEditDialog(Map<String, dynamic> item, int index) async {
+    final id = int.tryParse(item['id']?.toString() ?? '0') ?? 0;
+    if (id == 0) return;
+
+    final editJudulCtrl = TextEditingController(text: item['judul'] ?? '');
+    final editIsiCtrl = TextEditingController(text: item['isi'] ?? '');
+    final formKey = GlobalKey<FormState>();
+
+    final updated = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        bool isSaving = false;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              title: const Text('Edit Refleksi', style: TextStyle(fontWeight: FontWeight.bold)),
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: editJudulCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Judul',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: editIsiCtrl,
+                      maxLines: 5,
+                      validator: (v) => (v ?? '').trim().isEmpty ? 'Isi tidak boleh kosong' : null,
+                      decoration: InputDecoration(
+                        labelText: 'Isi Refleksi *',
+                        alignLabelWithHint: true,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSaving ? null : () => Navigator.pop(ctx, false),
+                  child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          if (!formKey.currentState!.validate()) return;
+                          setDialogState(() => isSaving = true);
+                          try {
+                            final res = await ApiService.submitRefleksiOrtu({
+                              'action': 'update',
+                              'id': id,
+                              'judul': editJudulCtrl.text.trim(),
+                              'isi': editIsiCtrl.text.trim(),
+                            });
+                            if (res['status'] == 'success') {
+                              Navigator.pop(ctx, true);
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(res['message'] ?? 'Gagal memperbarui')),
+                              );
+                              setDialogState(() => isSaving = false);
+                            }
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error: $e')),
+                            );
+                            setDialogState(() => isSaving = false);
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.orange700,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: isSaving
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('Simpan', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (updated == true) {
+      setState(() {
+        final mutableMap = Map<String, dynamic>.from(_myRefleksi[index]);
+        mutableMap['judul'] = editJudulCtrl.text.trim();
+        mutableMap['isi'] = editIsiCtrl.text.trim();
+        _myRefleksi[index] = mutableMap;
+      });
+      widget.onRefresh();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Refleksi berhasil diperbarui'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildRiwayatTab() {
@@ -560,6 +761,39 @@ class _RefleksiOrtuPageState extends State<RefleksiOrtuPage> {
               )),
               Text(date.toString().length > 10 ? date.toString().substring(0, 10) : date.toString(),
                   style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert_rounded, color: Colors.grey, size: 20),
+                padding: EdgeInsets.zero,
+                onSelected: (val) {
+                  if (val == 'edit') {
+                    _showEditDialog(item, i);
+                  } else if (val == 'delete') {
+                    _confirmDelete(item, i);
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit_rounded, size: 16, color: AppColors.orange700),
+                        SizedBox(width: 8),
+                        Text('Edit', style: TextStyle(fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_rounded, size: 16, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('Hapus', style: TextStyle(fontSize: 13, color: Colors.red)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ]),
             const SizedBox(height: 10),
             Text(item['isi'] ?? '-',

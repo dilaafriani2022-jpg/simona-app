@@ -37,7 +37,7 @@ class _DashboardOperatorState extends State<DashboardOperator>
   // ── Info sekolah ─────────────────────────────────────────────────────────
   static const String schoolName    = "TK Negeri 2 Bengkalis";
   static const String schoolAddress = "Jl. Pendidikan No. 1, Bengkalis, Riau";
-  static const String academicYear  = "Semester Ganjil · TA 2025/2026";
+
 
   bool _isLoading         = true;
   bool _isActivityLoading = true;   // ← loading khusus activity feed
@@ -261,6 +261,8 @@ class _DashboardOperatorState extends State<DashboardOperator>
       context,
       MaterialPageRoute(builder: (_) => screen),
     );
+    _fetchStats();
+    _fetchActivities();
   }
 
   // ════════════════════════════════════════════════════════════════════════════
@@ -938,7 +940,7 @@ class _DashboardOperatorState extends State<DashboardOperator>
                             const Icon(Icons.calendar_today_rounded, color: Color(0xFFFFE0A3), size: 12),
                             const SizedBox(width: 6),
                             Text(
-                              academicYear,
+                              "${_stats['semester_aktif_label'] ?? 'Semester Ganjil'} · TA ${_stats['tahun_ajaran_aktif'] ?? '2025/2026'}",
                               style: GoogleFonts.poppins(
                                 color: const Color(0xFFFFE0A3),
                                 fontSize: isSmall ? 10 : 11,
@@ -1028,7 +1030,7 @@ class _DashboardOperatorState extends State<DashboardOperator>
           crossAxisCount: isTablet ? 4 : 2,
           crossAxisSpacing: isSmall ? 10 : 12,
           mainAxisSpacing: isSmall ? 10 : 12,
-          childAspectRatio: isSmall ? 1.25 : 1.2,
+          childAspectRatio: isSmall ? 1.05 : 1.12,
         ),
         itemCount: cards.length,
         itemBuilder: (_, i) => _buildStatCard(cards[i], isSmall: isSmall),
@@ -1184,7 +1186,7 @@ class _DashboardOperatorState extends State<DashboardOperator>
               physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: isSmall ? 8 : 12,
               crossAxisSpacing: isSmall ? 8 : 12,
-              childAspectRatio: isSmall ? 0.82 : 0.88,
+              childAspectRatio: isSmall ? 0.70 : 0.78,
               children: items.map((item) => _buildMenuItem(item, isSmall: isSmall)).toList(),
             ),
           ],

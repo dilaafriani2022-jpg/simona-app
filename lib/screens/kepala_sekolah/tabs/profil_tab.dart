@@ -25,8 +25,10 @@ class _ProfilTabState extends State<ProfilTab> {
     final telp = widget.currentUserData['no_telp'] ?? '-';
     final initial = name.isNotEmpty ? name.substring(0, 1).toUpperCase() : 'K';
 
+    final double bottomPad = MediaQuery.of(context).padding.bottom + 96;
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.fromLTRB(20, 20, 20, bottomPad),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -328,9 +330,9 @@ class _ProfilTabState extends State<ProfilTab> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) {
+          final mq = MediaQuery.of(ctx);
           return Container(
-            height: MediaQuery.of(ctx).size.height * 0.9,
-            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+            height: mq.size.height * 0.9,
             decoration: const BoxDecoration(
               color: Color(0xFFF8FAFC),
               borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -370,7 +372,7 @@ class _ProfilTabState extends State<ProfilTab> {
 
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
+                  padding: EdgeInsets.fromLTRB(20, 20, 20, mq.viewInsets.bottom + 20),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     _editSectionTitle('Identitas Pribadi'),
                     _editField(ctrl: nameCtrl, label: 'Nama Lengkap *', icon: Icons.badge_rounded),

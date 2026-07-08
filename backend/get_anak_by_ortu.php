@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                     k.nama_kelas,
                     COALESCE(g.name, '-') AS nama_guru,
                     ta.id as id_tahun_ajaran,
-                    ta.tahun,
+                    COALESCE(ta.tahun, (SELECT tahun FROM tahun_ajaran WHERE status = 'aktif' LIMIT 1)) AS tahun,
                     u.name as nama_ortu,
                     u.email as email_ortu,
                     u.no_hp as no_telp_ortu

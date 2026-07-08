@@ -27,8 +27,9 @@ const kTextSub = Color(0xFF78716C);
 class AnekdotScreen extends StatefulWidget {
   final int? idGuru;
   final int? idKelas;
+  final int? idAnak;
   final bool isReadOnly;
-  const AnekdotScreen({super.key, this.idGuru, this.idKelas, this.isReadOnly = false});
+  const AnekdotScreen({super.key, this.idGuru, this.idKelas, this.idAnak, this.isReadOnly = false});
 
   @override
   State<AnekdotScreen> createState() => _AnekdotScreenState();
@@ -74,8 +75,9 @@ class _AnekdotScreenState extends State<AnekdotScreen> {
 
   Future<List<dynamic>> _getAnekdot() async {
     try {
+      final idAnakParam = widget.idAnak != null ? '&id_anak=${widget.idAnak}' : '';
       final response = await ApiService.fetch(
-        'manage_anekdot.php?id_guru=${widget.idGuru ?? 2}',
+        'manage_anekdot.php?id_guru=${widget.idGuru ?? 2}$idAnakParam',
       );
       if (response['status'] == 'success') return response['data'] ?? [];
       return [];
@@ -192,6 +194,203 @@ class _AnekdotScreenState extends State<AnekdotScreen> {
         );
       }
     }
+  }
+
+  Future<void> _updateAnekdot({
+    required int id,
+    required String peristiwa,
+    required String lokasi,
+  }) async {
+    try {
+      final response = await ApiService.post('manage_anekdot.php', {
+        'action': 'update',
+        'id': id,
+        'lokasi': lokasi,
+        'peristiwa': peristiwa,
+      });
+
+      if (response['status'] == 'success') {
+        setState(_loadAnekdot);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Catatan berhasil diperbarui'),
+              backgroundColor: Color(0xFF16A34A),
+            ),
+          );
+        }
+      } else {
+        throw Exception(response['message'] ?? 'Gagal memperbarui');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red.shade700),
+        );
+      }
+    }
+  }
+
+  void _showEditBottomSheet(Map<String, dynamic> item) {
+    final id = int.tryParse(item['id']?.toString() ?? '0') ?? 0;
+    if (id == 0) return;
+
+    String selectedLokasi = item['lokasi'] ?? '';
+    final peristiwaCtrl = TextEditingController(text: item['peristiwa'] ?? '');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setBS) => DraggableScrollableSheet(
+          initialChildSize: 0.92,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          builder: (_, ctrl) => Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              children: [
+                // Handle
+                Container(width: 40, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 0),
+                    decoration: BoxDecoration(color: const Color(0xFFD4CFCB), borderRadius: BorderRadius.circular(2))),
+
+                // Header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 14),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: kPrimary.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                        child: const Icon(Icons.edit_note_rounded, color: kPrimary, size: 20),
+                      ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Edit Catatan Anekdot',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1C1917))),
+                            Text('Perbarui peristiwa nyata yang diamati langsung',
+                                style: TextStyle(fontSize: 11, color: kTextSub)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1, color: kDivider),
+
+                // Scrollable body
+                Expanded(
+                  child: ListView(
+                    controller: ctrl,
+                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+                    children: [
+                      // ── Anak
+                      _formLabel('Nama Anak'),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: kDivider),
+                        ),
+                        child: Text(
+                          item['nama_anak'] ?? 'Anak',
+                          style: const TextStyle(fontSize: 13, color: Colors.black87),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // ── Lokasi
+                      _formLabel('Tempat / Konteks Kejadian'),
+                      const SizedBox(height: 6),
+                      _dropdownField<String>(
+                        hint: 'Pilih lokasi kejadian',
+                        value: selectedLokasi.isEmpty ? null : selectedLokasi,
+                        items: kLokasiList.map((l) =>
+                          DropdownMenuItem<String>(value: l, child: Text(l, style: const TextStyle(fontSize: 13)))).toList(),
+                        onChanged: (v) => setBS(() => selectedLokasi = v ?? ''),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // ── Peristiwa
+                      _formLabel('Deskripsi Peristiwa', required: true),
+                      const SizedBox(height: 4),
+                      const Text('Tuliskan secara objektif dan faktual, hindari penilaian atau opini.',
+                          style: TextStyle(fontSize: 10, color: kTextSub)),
+                      const SizedBox(height: 6),
+                      _textareaField(ctrl: peristiwaCtrl,
+                          hint: 'Contoh: "Anak mengambil pensil temannya lalu menangis saat diminta mengembalikan."',
+                          maxLines: 5),
+                      const SizedBox(height: 100),
+                    ],
+                  ),
+                ),
+
+                // ── Footer tombol
+                Container(
+                  padding: EdgeInsets.fromLTRB(18, 12, 18, MediaQuery.of(ctx).viewInsets.bottom + 16),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    border: Border(top: BorderSide(color: kDivider)),
+                  ),
+                  child: Row(children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          side: const BorderSide(color: kDivider),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Batal', style: TextStyle(color: kTextSub, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          if (peristiwaCtrl.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Peristiwa tidak boleh kosong'),
+                                  backgroundColor: Colors.deepOrange),
+                            );
+                            return;
+                          }
+                          Navigator.pop(ctx);
+                          _updateAnekdot(
+                            id: id,
+                            peristiwa: peristiwaCtrl.text.trim(),
+                            lokasi: selectedLokasi,
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: kPrimary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Simpan Perubahan',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      ),
+                    ),
+                  ]),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _deleteAnekdot(int id) async {
@@ -895,12 +1094,24 @@ class _AnekdotScreenState extends State<AnekdotScreen> {
                   ),
                 ),
                 if (!widget.isReadOnly)
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFD4534A)),
-                    onPressed: () => _deleteAnekdot(int.parse(item['id'].toString())),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                    tooltip: 'Hapus',
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit_outlined, size: 18, color: kPrimary),
+                        onPressed: () => _showEditBottomSheet(item),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                        tooltip: 'Edit',
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFD4534A)),
+                        onPressed: () => _deleteAnekdot(int.parse(item['id'].toString())),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                        tooltip: 'Hapus',
+                      ),
+                    ],
                   ),
               ],
             ),

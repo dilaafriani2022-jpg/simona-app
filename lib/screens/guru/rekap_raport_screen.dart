@@ -1,3 +1,7 @@
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -298,23 +302,12 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
     }
   }
 
-  // ── HELPER: Resolve Calendar Month from academic Bulan 1-5 ────────────────
-  int _getCalendarMonth(int academicBulan) {
-    if (_semester == 1) {
-      return academicBulan + 6;
-    } else {
-      return academicBulan;
-    }
-  }
 
   // ── LOAD MONTHLY RECAP DATA ───────────────────────────────────────────────
   Future<void> _loadMonthlyRecap() async {
     setState(() => _isLoadingData = true);
     final anakId = widget.anak['id'];
     final idGuru = widget.idGuru ?? 2;
-    final calendarMonth = _getCalendarMonth(_selectedBulan);
-    final year = DateTime.now().year;
-
     try {
       final narasiRes = await ApiService.fetch(
         'manage_rekap_bulanan.php?type=narasi_aspek&id_anak=$anakId&bulan=$_selectedBulan&semester=$_semester&id_guru=$idGuru',
@@ -324,7 +317,7 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
       }
 
       final kehadiranRes = await ApiService.fetch(
-        'get_kehadiran_ortu.php?id_anak=$anakId&bulan=$calendarMonth&tahun=$year',
+        'get_kehadiran_ortu.php?id_anak=$anakId&bulan=$_selectedBulan&semester=$_semester',
       );
       if (kehadiranRes['status'] == 'success') {
         _kehadiranStats = Map<String, dynamic>.from(kehadiranRes['stats'] ?? {
@@ -402,8 +395,6 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
     setState(() => _isLoadingData = true);
     final anakId = widget.anak['id'];
     final idGuru = widget.idGuru ?? 2;
-    final year = DateTime.now().year;
-
     try {
       final narasiRes = await ApiService.fetch(
         'manage_rekap_bulanan.php?type=narasi_aspek&id_anak=$anakId&bulan=6&semester=$_semester&id_guru=$idGuru',
@@ -431,9 +422,8 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
       int totalAlpa = 0;
       final List<int> academicMonths = [1, 2, 3, 4, 5, 6];
       final futures = academicMonths.map((m) {
-        final calMon = _getCalendarMonth(m);
         return ApiService.fetch(
-          'get_kehadiran_ortu.php?id_anak=$anakId&bulan=$calMon&tahun=$year',
+          'get_kehadiran_ortu.php?id_anak=$anakId&bulan=$m&semester=$_semester',
         );
       }).toList();
 
@@ -531,7 +521,7 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
   }
 
   // ── EXPORT PDF ────────────────────────────────────────────────────────────
-  Future<void> _exportToPdf() async {
+  Future<void> _executePdfExport({required bool saveDirectly}) async {
     setState(() => _isExporting = true);
     try {
       late final pw.Document doc;
@@ -539,11 +529,10 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
         final fontRegular = await PdfGoogleFonts.robotoRegular();
         final fontBold = await PdfGoogleFonts.robotoBold();
         final fontItalic = await PdfGoogleFonts.robotoItalic();
-
         doc = pw.Document(
           theme: pw.ThemeData.withFont(
-            base: fontRegular,
-            bold: fontBold,
+            base:   fontRegular,
+            bold:   fontBold,
             italic: fontItalic,
           ),
         );
@@ -724,7 +713,7 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
                             padding: pw.EdgeInsets.only(bottom: e.key < paras.length - 1 ? 8 : 0),
                             child: pw.Text(
                               '      ${e.value}',  // indent first line with spaces
-                              style: styleNormal.copyWith(lineSpacing: 1.5),
+                              style: styleNormal.copyWith(lineSpacing: 2.0),
                               textAlign: pw.TextAlign.justify,
                             ),
                           )).toList(),
@@ -791,7 +780,7 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
           columnWidths: const {
             0: pw.FixedColumnWidth(30),
             1: pw.FixedColumnWidth(120),
-            2: pw.FlexColumnWidth(),
+            2: pw.FixedColumnWidth(373),
           },
           children: rows,
         );
@@ -803,7 +792,7 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
           columnWidths: const {
             0: pw.FixedColumnWidth(30),
             1: pw.FixedColumnWidth(120),
-            2: pw.FlexColumnWidth(),
+            2: pw.FixedColumnWidth(373),
           },
           children: [
             pw.TableRow(
@@ -919,17 +908,19 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
           margin: const pw.EdgeInsets.symmetric(horizontal: 36, vertical: 36),
           build: (context) => [
             // ── COVER PAGE (Halaman 1) ──────────────────────────────────
-            pw.Center(
+            // Semua widget TOP-LEVEL MultiPage → dapat bounded width 523pt
+            // Tidak ada FlexColumnWidth di dalam Column/Align → tidak ada NaN
+            pw.SizedBox(height: 20),
+            pw.Align(
+              alignment: pw.Alignment.center,
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.center,
                 children: [
                   pw.SizedBox(height: 20),
-                  // Logo
                   logoImage != null
                       ? pw.Image(logoImage, width: 90, height: 90)
-                      : pw.SizedBox(height: 90),
+                      : pw.SizedBox(width: 90, height: 90),
                   pw.SizedBox(height: 20),
-                  // Title
                   pw.Text(
                     'LAPORAN',
                     style: styleBold.copyWith(fontSize: 13),
@@ -946,35 +937,32 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
                     textAlign: pw.TextAlign.center,
                   ),
                   pw.SizedBox(height: 35),
-                  // Metadata Table
-                  pw.Center(
-                    child: pw.Container(
-                      width: 320,
-                      child: pw.Table(
-                        columnWidths: {
-                          0: const pw.FixedColumnWidth(110),
-                          1: const pw.FixedColumnWidth(15),
-                          2: const pw.FlexColumnWidth(),
-                        },
-                        children: [
-                          metadataCoverRow('Nama Lembaga', namaSekolah.toUpperCase()),
-                          metadataCoverRow('NPSN', npsn),
-                          metadataCoverRow('NSTK', _schoolInfo['nstk']?.toString() ?? '002090201009'),
-                          metadataCoverRow('Alamat', alamat.toUpperCase(), isLink: true),
-                          metadataCoverRow('Desa/Kelurahan', (_schoolInfo['kelurahan'] ?? 'SUNGAI ALAM').toString().toUpperCase()),
-                          metadataCoverRow('Kecamatan', (_schoolInfo['kecamatan'] ?? 'BENGKALIS').toString().toUpperCase()),
-                          metadataCoverRow('Kabupaten/Kota', (_schoolInfo['kabupaten'] ?? 'BENGKALIS').toString().toUpperCase()),
-                          metadataCoverRow('Propinsi', (_schoolInfo['provinsi'] ?? 'RIAU').toString().toUpperCase()),
-                          metadataCoverRow('Kode Pos', _schoolInfo['kode_pos'] ?? '28751'),
-                        ],
-                      ),
+                  pw.Container(
+                    width: 320,
+                    child: pw.Table(
+                      columnWidths: const {
+                        0: pw.FixedColumnWidth(110),
+                        1: pw.FixedColumnWidth(15),
+                        2: pw.FixedColumnWidth(195),
+                      },
+                      children: [
+                        metadataCoverRow('Nama Lembaga', namaSekolah.toUpperCase()),
+                        metadataCoverRow('NPSN', npsn),
+                        metadataCoverRow('NSTK', _schoolInfo['nstk']?.toString() ?? '002090201009'),
+                        metadataCoverRow('Alamat', alamat.toUpperCase(), isLink: true),
+                        metadataCoverRow('Desa/Kelurahan', (_schoolInfo['kelurahan'] ?? 'SUNGAI ALAM').toString().toUpperCase()),
+                        metadataCoverRow('Kecamatan', (_schoolInfo['kecamatan'] ?? 'BENGKALIS').toString().toUpperCase()),
+                        metadataCoverRow('Kabupaten/Kota', (_schoolInfo['kabupaten'] ?? 'BENGKALIS').toString().toUpperCase()),
+                        metadataCoverRow('Propinsi', (_schoolInfo['provinsi'] ?? 'RIAU').toString().toUpperCase()),
+                        metadataCoverRow('Kode Pos', _schoolInfo['kode_pos'] ?? '28751'),
+                      ],
                     ),
                   ),
                   pw.SizedBox(height: 35),
-                  // Child details
                   pw.Text(
                     'Nama Anak Didik',
                     style: styleBold.copyWith(fontSize: 11),
+                    textAlign: pw.TextAlign.center,
                   ),
                   pw.SizedBox(height: 12),
                   pw.Text(
@@ -983,6 +971,7 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
                       fontSize: 11,
                       decoration: pw.TextDecoration.underline,
                     ),
+                    textAlign: pw.TextAlign.center,
                   ),
                   pw.SizedBox(height: 4),
                   pw.Text(
@@ -992,9 +981,9 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
                       decoration: pw.TextDecoration.underline,
                       color: PdfColors.blue,
                     ),
+                    textAlign: pw.TextAlign.center,
                   ),
                   pw.SizedBox(height: 70),
-                  // Footer
                   pw.Text(
                     namaSekolah.toUpperCase(),
                     style: styleBold.copyWith(fontSize: 11),
@@ -1007,12 +996,10 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
             pw.NewPage(),
 
             // ── Halaman 2: Keterangan Anak Didik ────────────────────────────
-            pw.Center(
-              child: pw.Text(
-                'KETERANGAN ANAK DIDIK',
-                style: styleBold.copyWith(fontSize: 13),
-                textAlign: pw.TextAlign.center,
-              ),
+            pw.Text(
+              'KETERANGAN ANAK DIDIK',
+              style: styleBold.copyWith(fontSize: 13),
+              textAlign: pw.TextAlign.center,
             ),
             pw.SizedBox(height: 16),
 
@@ -1071,12 +1058,10 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
             pw.NewPage(),
 
             // ── Halaman 3: Petunjuk Penggunaan ───────────────────────────────
-            pw.Center(
-              child: pw.Text(
-                'PETUNJUK PENGGUNAAN',
-                style: styleBold.copyWith(fontSize: 12),
-                textAlign: pw.TextAlign.center,
-              ),
+            pw.Text(
+              'PETUNJUK PENGGUNAAN',
+              style: styleBold.copyWith(fontSize: 12),
+              textAlign: pw.TextAlign.center,
             ),
             pw.SizedBox(height: 20),
 
@@ -1185,19 +1170,15 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
             pw.NewPage(),
 
             // ── Halaman 4: Keterangan Nilai Kualitatif Capaian Pembelajaran ──
-            pw.Center(
-              child: pw.Text(
-                'KETERANGAN NILAI KUALITATIF',
-                style: styleBold.copyWith(fontSize: 12),
-                textAlign: pw.TextAlign.center,
-              ),
+            pw.Text(
+              'KETERANGAN NILAI KUALITATIF',
+              style: styleBold.copyWith(fontSize: 12),
+              textAlign: pw.TextAlign.center,
             ),
-            pw.Center(
-              child: pw.Text(
-                'CAPAIAN PEMBELAJARAN',
-                style: styleBold.copyWith(fontSize: 12),
-                textAlign: pw.TextAlign.center,
-              ),
+            pw.Text(
+              'CAPAIAN PEMBELAJARAN',
+              style: styleBold.copyWith(fontSize: 12),
+              textAlign: pw.TextAlign.center,
             ),
             pw.SizedBox(height: 16),
 
@@ -1225,7 +1206,8 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
                         width: 20,
                         child: pw.Text('$idx.', style: styleBold),
                       ),
-                      pw.Expanded(
+                      pw.Container(
+                        width: 503,
                         child: pw.Text(namaAspek, style: styleBold),
                       ),
                     ],
@@ -1244,7 +1226,8 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
                             pw.Text('• ', style: styleNormal),
-                            pw.Expanded(
+                            pw.Container(
+                              width: 493,
                               child: pw.Text(
                                 bullet,
                                 style: styleNormal,
@@ -1264,12 +1247,10 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
 
             // ── Halaman 5: Judul, Identitas & Agama ─────────────────────────
 
-            pw.Center(
-              child: pw.Text(
-                'LAPORAN PENILAIAN PERKEMBANGAN ANAK',
-                style: styleBold.copyWith(fontSize: 12),
-                textAlign: pw.TextAlign.center,
-              ),
+            pw.Text(
+              'LAPORAN PENILAIAN PERKEMBANGAN ANAK',
+              style: styleBold.copyWith(fontSize: 12),
+              textAlign: pw.TextAlign.center,
             ),
             pw.SizedBox(height: 15),
 
@@ -1279,12 +1260,13 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
               child: pw.Row(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Expanded(
+                  pw.Container(
+                    width: 251.5,
                     child: pw.Table(
-                      columnWidths: {
-                        0: const pw.IntrinsicColumnWidth(),
-                        1: const pw.FixedColumnWidth(8),
-                        2: const pw.FlexColumnWidth(),
+                      columnWidths: const {
+                        0: pw.FixedColumnWidth(90),
+                        1: pw.FixedColumnWidth(8),
+                        2: pw.FixedColumnWidth(153.5),
                       },
                       children: [
                         metadataRow('Nama Sekolah', namaSekolah),
@@ -1295,12 +1277,13 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
                     ),
                   ),
                   pw.SizedBox(width: 20),
-                  pw.Expanded(
+                  pw.Container(
+                    width: 251.5,
                     child: pw.Table(
-                      columnWidths: {
-                        0: const pw.IntrinsicColumnWidth(),
-                        1: const pw.FixedColumnWidth(8),
-                        2: const pw.FlexColumnWidth(),
+                      columnWidths: const {
+                        0: pw.FixedColumnWidth(70),
+                        1: pw.FixedColumnWidth(8),
+                        2: pw.FixedColumnWidth(173.5),
                       },
                       children: [
                         metadataRow('Kelompok', kelas),
@@ -1345,9 +1328,6 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
             // ── Halaman 7: Foto Kegiatan Anak ───────────────────────────────
             pw.Table(
               border: pw.TableBorder.all(color: PdfColors.black, width: 1.0),
-              columnWidths: const {
-                0: pw.FlexColumnWidth(),
-              },
               children: [
                 pw.TableRow(
                   decoration: const pw.BoxDecoration(color: PdfColors.red),
@@ -1443,9 +1423,6 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
             // 1. Refleksi Guru
             pw.Table(
               border: pw.TableBorder.all(color: PdfColors.black, width: 1.0),
-              columnWidths: const {
-                0: pw.FlexColumnWidth(),
-              },
               children: [
                 pw.TableRow(
                   decoration: pw.BoxDecoration(color: PdfColor.fromHex('#A2D149')),
@@ -1467,7 +1444,7 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
                       padding: const pw.EdgeInsets.all(10),
                       child: pw.Text(
                         refGuruText,
-                        style: styleNormal.copyWith(lineSpacing: 1.3),
+                        style: styleNormal.copyWith(lineSpacing: 2.0),
                         textAlign: pw.TextAlign.justify,
                       ),
                     ),
@@ -1481,9 +1458,6 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
             if (!hideRefleksiOrtu) ...[
               pw.Table(
                 border: pw.TableBorder.all(color: PdfColors.black, width: 1.0),
-                columnWidths: const {
-                  0: pw.FlexColumnWidth(),
-                },
                 children: [
                   pw.TableRow(
                     decoration: pw.BoxDecoration(color: PdfColor.fromHex('#FFD966')),
@@ -1514,10 +1488,11 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
                                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                                 children: [
                                   pw.Text('$idx. ', style: styleNormal),
-                                  pw.Expanded(
+                                  pw.Container(
+                                    width: 488,
                                     child: pw.Text(
                                       text,
-                                      style: styleNormal.copyWith(lineSpacing: 1.2),
+                                      style: styleNormal.copyWith(lineSpacing: 2.0),
                                       textAlign: pw.TextAlign.justify,
                                     ),
                                   ),
@@ -1537,9 +1512,6 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
             // 3. Kokurikuler Gerakan 7 Kebiasaan Anak Indonesia Hebat
             pw.Table(
               border: pw.TableBorder.all(color: PdfColors.black, width: 1.0),
-              columnWidths: const {
-                0: pw.FlexColumnWidth(),
-              },
               children: [
                 pw.TableRow(
                   decoration: pw.BoxDecoration(color: PdfColor.fromHex('#29B6F6')),
@@ -1561,7 +1533,7 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
                       padding: const pw.EdgeInsets.all(10),
                       child: pw.Text(
                         kokurikulerText,
-                        style: styleNormal.copyWith(lineSpacing: 1.3),
+                        style: styleNormal.copyWith(lineSpacing: 2.0),
                         textAlign: pw.TextAlign.justify,
                       ),
                     ),
@@ -1574,9 +1546,6 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
             // 4. Foto Kegiatan Kokurikuler
             pw.Table(
               border: pw.TableBorder.all(color: PdfColors.black, width: 1.0),
-              columnWidths: const {
-                0: pw.FlexColumnWidth(),
-              },
               children: [
                 pw.TableRow(
                   decoration: pw.BoxDecoration(color: PdfColor.fromHex('#BDD7EE')),
@@ -1700,7 +1669,8 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
             pw.SizedBox(height: 25),
 
             // Signature Row 2 (Principal)
-            pw.Center(
+            pw.Align(
+              alignment: pw.Alignment.center,
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.center,
                 children: [
@@ -1722,7 +1692,52 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
       final pdfBytes = await doc.save();
       final filename = 'Rapor_${name.replaceAll(' ', '_')}_Semester$_semester.pdf';
 
-      await Printing.sharePdf(bytes: pdfBytes, filename: filename);
+      if (saveDirectly) {
+        final filePath = await _saveFileToDevice(pdfBytes, filename);
+        if (filePath != null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Rapor berhasil diunduh', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)),
+                          Text(filename, style: const TextStyle(fontSize: 10, color: Colors.white70), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                backgroundColor: Colors.green.shade700,
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                action: SnackBarAction(
+                  label: 'BUKA',
+                  textColor: Colors.yellowAccent,
+                  onPressed: () async {
+                    try {
+                      await OpenFilex.open(filePath);
+                    } catch (e) {
+                      debugPrint("Gagal membuka file: $e");
+                    }
+                  },
+                ),
+              ),
+            );
+          }
+        } else {
+          throw Exception('Gagal menyimpan ke penyimpanan HP');
+        }
+      } else {
+        await Printing.sharePdf(bytes: pdfBytes, filename: filename);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1737,7 +1752,7 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
     }
   }
 
-  Future<void> _exportToWord() async {
+  Future<void> _executeWordExport({required bool saveDirectly}) async {
     setState(() => _isExporting = true);
     try {
       final anakId = widget.anak['id'];
@@ -1747,10 +1762,55 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final filename = 'Rapor_${name.replaceAll(' ', '_')}_Semester$_semester.doc';
-        await Printing.sharePdf(
-          bytes: response.bodyBytes,
-          filename: filename,
-        );
+        if (saveDirectly) {
+          final filePath = await _saveFileToDevice(response.bodyBytes, filename);
+          if (filePath != null) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Rapor berhasil diunduh', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)),
+                            Text(filename, style: const TextStyle(fontSize: 10, color: Colors.white70), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  backgroundColor: Colors.green.shade700,
+                  behavior: SnackBarBehavior.floating,
+                  duration: const Duration(seconds: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  action: SnackBarAction(
+                    label: 'BUKA',
+                    textColor: Colors.yellowAccent,
+                    onPressed: () async {
+                      try {
+                        await OpenFilex.open(filePath);
+                      } catch (e) {
+                        debugPrint("Gagal membuka file: $e");
+                      }
+                    },
+                  ),
+                ),
+              );
+            }
+          } else {
+            throw Exception('Gagal menyimpan ke penyimpanan HP');
+          }
+        } else {
+          await Printing.sharePdf(
+            bytes: response.bodyBytes,
+            filename: filename,
+          );
+        }
       } else {
         throw Exception('Server returned status code ${response.statusCode}');
       }
@@ -1768,6 +1828,108 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
     }
   }
 
+  Future<String?> _saveFileToDevice(Uint8List bytes, String filename) async {
+    try {
+      Directory? dir;
+      if (Platform.isAndroid) {
+        // Try direct public Download folder
+        final publicDownloadDir = Directory('/storage/emulated/0/Download');
+        if (await publicDownloadDir.exists()) {
+          dir = publicDownloadDir;
+        } else {
+          dir = await getDownloadsDirectory();
+          if (dir == null) {
+            dir = await getExternalStorageDirectory();
+          }
+        }
+      } else if (Platform.isIOS) {
+        dir = await getApplicationDocumentsDirectory();
+      }
+
+      if (dir != null) {
+        final filePath = '${dir.path}/$filename';
+        final file = File(filePath);
+        await file.writeAsBytes(bytes);
+        return filePath;
+      }
+    } catch (e) {
+      debugPrint("Error saving file directly: $e");
+    }
+    return null;
+  }
+
+  Future<void> _showExportConfirmation(BuildContext context, String type) async {
+    final name = widget.anak['nama_anak'] ?? 'Anak';
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(
+              type == 'PDF' ? Icons.picture_as_pdf_rounded : Icons.description_rounded,
+              color: type == 'PDF' ? Colors.red : Colors.blue,
+              size: 24,
+            ),
+            const SizedBox(width: 10),
+            Text('Ekspor Rapor $type', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
+        content: Text('Apakah Anda yakin ingin mengekspor rapor $name ke format $type?'),
+        actionsAlignment: MainAxisAlignment.spaceBetween,
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  if (type == 'PDF') {
+                    _executePdfExport(saveDirectly: true);
+                  } else {
+                    _executeWordExport(saveDirectly: true);
+                  }
+                },
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  side: const BorderSide(color: _primary),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                ),
+                icon: const Icon(Icons.download_rounded, size: 16, color: _primary),
+                label: const Text('Simpan', style: TextStyle(fontSize: 12, color: _primary)),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  if (type == 'PDF') {
+                    _executePdfExport(saveDirectly: false);
+                  } else {
+                    _executeWordExport(saveDirectly: false);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  backgroundColor: _primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  elevation: 0,
+                ),
+                icon: const Icon(Icons.share_rounded, size: 16),
+                label: const Text('Bagikan', style: TextStyle(fontSize: 12)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── HELPER: Numbered item for Petunjuk Penggunaan page ──────────────────
   pw.Widget _petunjukItem(String number, List<pw.TextSpan> spans) {
     return pw.Row(
@@ -1777,7 +1939,8 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
           width: 22,
           child: pw.Text(number, style: const pw.TextStyle(fontSize: 10)),
         ),
-        pw.Expanded(
+        pw.Container(
+          width: 501,
           child: pw.RichText(
             textAlign: pw.TextAlign.justify,
             text: pw.TextSpan(children: spans),
@@ -1826,9 +1989,9 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
 
     final colWidths = {
       0: const pw.FixedColumnWidth(28.0),  // number/letter indent
-      1: const pw.FlexColumnWidth(2.0),    // label
+      1: const pw.FixedColumnWidth(192.4), // label
       2: const pw.FixedColumnWidth(14.0),  // colon
-      3: const pw.FlexColumnWidth(3.0),    // value
+      3: const pw.FixedColumnWidth(288.6), // value
     };
 
     pw.TableRow itemRow(String num, String label, String value, {bool boldValue = false}) =>
@@ -1907,8 +2070,8 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
           style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 16),
         ),
         actions: [
-          // ── Export PDF button (only on Rapor Akhir tab) ──────────────
-          if (_currentTabIndex == 1)
+          // ── Export PDF button (only on Rapor Akhir tab and if not read-only) ──────────────
+          if (_currentTabIndex == 1 && !widget.isReadOnly)
             _isExporting
                 ? const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 14),
@@ -1927,12 +2090,12 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
                       IconButton(
                         tooltip: 'Export Word',
                         icon: const Icon(Icons.description_rounded, color: Colors.white),
-                        onPressed: _exportToWord,
+                        onPressed: () => _showExportConfirmation(context, 'Word'),
                       ),
                       IconButton(
                         tooltip: 'Export PDF',
                         icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.white),
-                        onPressed: _exportToPdf,
+                        onPressed: () => _showExportConfirmation(context, 'PDF'),
                       ),
                     ],
                   ),

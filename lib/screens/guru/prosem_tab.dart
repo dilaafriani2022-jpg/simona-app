@@ -53,24 +53,67 @@ class _ProsemTabState extends State<ProsemTab> {
     return map;
   }
 
+  // ── Helpers ─────────────────────────────────────────────────────────────
+  static const List<String> _bulanList = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+  ];
+
+  static const List<int> _tahunList = [2023, 2024, 2025, 2026, 2027, 2028];
+
+  // Parse YYYY-MM-DD → {day, month, year} or null
+  Map<String, int>? _parseDate(String raw) {
+    if (raw.isEmpty) return null;
+    final parts = raw.split('-');
+    if (parts.length < 3) return null;
+    final y = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    final d = int.tryParse(parts[2]);
+    if (y == null || m == null || d == null) return null;
+    return {'year': y, 'month': m, 'day': d};
+  }
+
+  String _buildDate(int day, int month, int year) =>
+      '$year-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+
+  int _daysInMonth(int month, int year) {
+    if (month == 2) return (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)) ? 29 : 28;
+    return [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
+  }
+
   Future<void> _showEditForm(int mingguKe, dynamic existingData) async {
     if (widget.isReadOnly) return;
 
-    final bulanCtrl = TextEditingController(text: existingData?['bulan'] ?? '');
-    final tglMulaiCtrl = TextEditingController(text: existingData?['tanggal_mulai'] ?? '');
-    final tglSelesaiCtrl = TextEditingController(text: existingData?['tanggal_selesai'] ?? '');
-    final topikCtrl = TextEditingController(text: existingData?['topik'] ?? '');
-    final subTopikCtrl = TextEditingController(text: existingData?['sub_topik'] ?? '');
+    // ── Initial values ──────────────────────────────────────────────────
+    final parsedMulai  = _parseDate(existingData?['tanggal_mulai'] ?? '');
+    final parsedSelesai = _parseDate(existingData?['tanggal_selesai'] ?? '');
+    final now = DateTime.now();
+
+    String? selBulan = (existingData?['bulan'] != null &&
+            _bulanList.contains(existingData!['bulan']))
+        ? existingData['bulan']
+        : null;
+
+    int mulaiDay   = parsedMulai?['day']   ?? 1;
+    int mulaiMonth = parsedMulai?['month'] ?? now.month;
+    int mulaiYear  = parsedMulai?['year']  ?? now.year;
+
+    int selDay   = parsedSelesai?['day']   ?? 1;
+    int selMonth = parsedSelesai?['month'] ?? now.month;
+    int selYear  = parsedSelesai?['year']  ?? now.year;
+
+    final topikCtrl      = TextEditingController(text: existingData?['topik'] ?? '');
+    final subTopikCtrl   = TextEditingController(text: existingData?['sub_topik'] ?? '');
     final subSubTopikCtrl = TextEditingController(text: existingData?['sub_sub_topik'] ?? '');
-    final catatanCtrl = TextEditingController(text: existingData?['catatan'] ?? '');
+    final catatanCtrl    = TextEditingController(text: existingData?['catatan'] ?? '');
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.85,
-        maxChildSize: 0.95,
+        initialChildSize: 0.90,
+        maxChildSize: 0.97,
         minChildSize: 0.5,
         expand: false,
         builder: (_, scrollController) => Container(
@@ -80,16 +123,131 @@ class _ProsemTabState extends State<ProsemTab> {
           ),
           child: StatefulBuilder(
             builder: (ctx, setSheetState) {
+              // ── Bulan Dropdown ────────────────────────────────────────
+              Widget bulanDropdown = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Bulan',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF374151))),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF9FAFB),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _border),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        isExpanded: true,
+                        value: selBulan,
+                        hint: const Text('Pilih Bulan', style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 13)),
+                        icon: const Icon(Icons.keyboard_arrow_down_rounded, color: _primary),
+                        items: _bulanList.map((b) => DropdownMenuItem(
+                          value: b,
+                          child: Text(b, style: const TextStyle(fontSize: 13)),
+                        )).toList(),
+                        onChanged: (v) {
+                          if (v != null) {
+                            final idx = _bulanList.indexOf(v) + 1;
+                            setSheetState(() {
+                              selBulan = v;
+                              mulaiMonth = idx;
+                              selMonth = idx;
+                              final maxMulai = _daysInMonth(mulaiMonth, mulaiYear);
+                              mulaiDay = mulaiDay.clamp(1, maxMulai);
+                              final maxSelesai = _daysInMonth(selMonth, selYear);
+                              selDay = selDay.clamp(1, maxSelesai);
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              );
+
+              // ── Date Row Builder ──────────────────────────────────────
+              Widget dateRow(
+                String label,
+                int day, int month, int year,
+                void Function(int d, int m, int y) onChanged,
+              ) {
+                final maxDay = _daysInMonth(month, year);
+                final safeDay = day.clamp(1, maxDay);
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      const Icon(Icons.calendar_today_rounded, size: 15, color: _primary),
+                      const SizedBox(width: 6),
+                      Text(label, style: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF374151))),
+                    ]),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      // ── Tanggal ──
+                      Expanded(
+                        flex: 2,
+                        child: _dateDropdown(
+                          label: 'Tgl',
+                          value: safeDay,
+                          items: List.generate(maxDay, (i) => i + 1),
+                          display: (v) => v.toString().padLeft(2, '0'),
+                          onChanged: (v) => onChanged(v, month, year),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // ── Bulan ──
+                      Expanded(
+                        flex: 3,
+                        child: _dateDropdown(
+                          label: 'Bulan',
+                          value: month,
+                          items: List.generate(12, (i) => i + 1),
+                          display: (v) => _bulanList[v - 1].substring(0, 3),
+                          onChanged: (v) {
+                            final newMaxDay = _daysInMonth(v, year);
+                            onChanged(day.clamp(1, newMaxDay), v, year);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // ── Tahun ──
+                      Expanded(
+                        flex: 3,
+                        child: _dateDropdown(
+                          label: 'Tahun',
+                          value: _tahunList.contains(year) ? year : _tahunList.first,
+                          items: _tahunList,
+                          display: (v) => v.toString(),
+                          onChanged: (v) {
+                            final newMaxDay = _daysInMonth(month, v);
+                            onChanged(day.clamp(1, newMaxDay), month, v);
+                          },
+                        ),
+                      ),
+                    ]),
+                  ],
+                );
+              }
+
               return SingleChildScrollView(
                 controller: scrollController,
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  16,
+                  20,
+                  32 + MediaQuery.of(ctx).viewInsets.bottom,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Handle bar
                     Center(
                       child: Container(
-                        width: 40,
-                        height: 4,
+                        width: 40, height: 4,
                         decoration: BoxDecoration(
                           color: _primary.withOpacity(0.25),
                           borderRadius: BorderRadius.circular(4),
@@ -100,43 +258,69 @@ class _ProsemTabState extends State<ProsemTab> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Edit Prosem - Minggu $mingguKe',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: _navy),
-                        ),
+                        Text('Edit Prosem - Minggu $mingguKe',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 17, color: _navy)),
                         IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => Navigator.pop(ctx),
-                        ),
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(ctx)),
                       ],
                     ),
                     const Divider(),
                     const SizedBox(height: 12),
-                    
-                    _buildTextField(bulanCtrl, 'Bulan', 'Misal: Juli, Agustus', Icons.calendar_month),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(child: _buildTextField(tglMulaiCtrl, 'Tanggal Mulai', 'YYYY-MM-DD', Icons.date_range)),
-                        const SizedBox(width: 12),
-                        Expanded(child: _buildTextField(tglSelesaiCtrl, 'Tanggal Selesai', 'YYYY-MM-DD', Icons.date_range)),
-                      ],
+
+                    // ── Bulan ────────────────────────────────────────────
+                    bulanDropdown,
+                    const SizedBox(height: 16),
+
+                    // ── Tanggal Mulai ─────────────────────────────────────
+                    dateRow(
+                      'Tanggal Mulai',
+                      mulaiDay, mulaiMonth, mulaiYear,
+                      (d, m, y) => setSheetState(() {
+                        mulaiDay = d; mulaiMonth = m; mulaiYear = y;
+                        if (mulaiMonth >= 1 && mulaiMonth <= 12) {
+                          selBulan = _bulanList[mulaiMonth - 1];
+                        }
+                      }),
                     ),
+                    const SizedBox(height: 16),
+
+                    // ── Tanggal Selesai ────────────────────────────────────
+                    dateRow(
+                      'Tanggal Selesai',
+                      selDay, selMonth, selYear,
+                      (d, m, y) => setSheetState(() {
+                        selDay = d; selMonth = m; selYear = y;
+                      }),
+                    ),
+                    const SizedBox(height: 16),
+
+                    _buildTextField(topikCtrl, 'Topik / Tema Utama',
+                        'Misal: Aku senang ke sekolah', Icons.topic),
                     const SizedBox(height: 12),
-                    _buildTextField(topikCtrl, 'Topik / Tema Utama', 'Misal: Aku senang ke sekolah', Icons.topic),
+                    _buildTextField(subTopikCtrl, 'Sub Topik / Sub Tema',
+                        'Gunakan baris baru untuk memisahkan sub topik',
+                        Icons.subdirectory_arrow_right, maxLines: 3),
                     const SizedBox(height: 12),
-                    _buildTextField(subTopikCtrl, 'Sub Topik / Sub Tema', 'Gunakan baris baru untuk memisahkan sub topik', Icons.subdirectory_arrow_right, maxLines: 3),
+                    _buildTextField(subSubTopikCtrl, 'Sub-Sub Topik',
+                        'Detail sub-sub topik', Icons.subject, maxLines: 4),
                     const SizedBox(height: 12),
-                    _buildTextField(subSubTopikCtrl, 'Sub-Sub Topik', 'Detail sub-sub topik', Icons.subject, maxLines: 4),
-                    const SizedBox(height: 12),
-                    _buildTextField(catatanCtrl, 'Catatan Khusus', 'Catatan jika ada', Icons.note, maxLines: 2),
-                    
+                    _buildTextField(catatanCtrl, 'Catatan Khusus',
+                        'Catatan jika ada', Icons.note, maxLines: 2),
+
                     const SizedBox(height: 24),
                     SizedBox(
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
                         onPressed: () async {
+                          if (selBulan == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Pilih bulan terlebih dahulu')),
+                            );
+                            return;
+                          }
                           final idKelas = widget.idKelas ?? 2;
                           final res = await ApiService.post('manage_prosem.php', {
                             'action': 'save',
@@ -144,10 +328,12 @@ class _ProsemTabState extends State<ProsemTab> {
                             'id_guru': widget.idGuru,
                             'semester': 1,
                             'tahun_ajaran': '2025/2026',
-                            'bulan': bulanCtrl.text.trim(),
+                            'bulan': selBulan,
                             'minggu_ke': mingguKe,
-                            'tanggal_mulai': tglMulaiCtrl.text.trim(),
-                            'tanggal_selesai': tglSelesaiCtrl.text.trim(),
+                            'tanggal_mulai':
+                                _buildDate(mulaiDay, mulaiMonth, mulaiYear),
+                            'tanggal_selesai':
+                                _buildDate(selDay, selMonth, selYear),
                             'topik': topikCtrl.text.trim(),
                             'sub_topik': subTopikCtrl.text.trim(),
                             'sub_sub_topik': subSubTopikCtrl.text.trim(),
@@ -158,20 +344,27 @@ class _ProsemTabState extends State<ProsemTab> {
                             Navigator.pop(ctx);
                             _loadData();
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Prosem berhasil disimpan', style: TextStyle(color: Colors.white)), backgroundColor: Colors.green),
+                              const SnackBar(
+                                content: Text('Prosem berhasil disimpan',
+                                    style: TextStyle(color: Colors.white)),
+                                backgroundColor: Colors.green,
+                              ),
                             );
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(res['message'] ?? 'Gagal menyimpan prosem')),
+                              SnackBar(
+                                  content: Text(res['message'] ?? 'Gagal menyimpan prosem')),
                             );
                           }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _primary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
                           elevation: 0,
                         ),
-                        child: const Text('Simpan Perubahan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        child: const Text('Simpan Perubahan',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
@@ -183,6 +376,49 @@ class _ProsemTabState extends State<ProsemTab> {
       ),
     );
   }
+
+  // ── Generic date-part dropdown ────────────────────────────────────────────
+  Widget _dateDropdown<T>({
+    required String label,
+    required T value,
+    required List<T> items,
+    required String Function(T) display,
+    required void Function(T) onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(
+                fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF6B7280))),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF9FAFB),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: _border),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<T>(
+              isExpanded: true,
+              value: value,
+              icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: _primary),
+              items: items
+                  .map((v) => DropdownMenuItem<T>(
+                        value: v,
+                        child: Text(display(v),
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      ))
+                  .toList(),
+              onChanged: (v) { if (v != null) onChanged(v); },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
 
   Widget _buildTextField(TextEditingController controller, String label, String hint, IconData icon, {int maxLines = 1}) {
     return Column(

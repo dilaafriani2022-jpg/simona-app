@@ -506,48 +506,79 @@ class _PerkembanganTabState extends State<PerkembanganTab> {
       itemCount: widget.anekdotList.length,
       itemBuilder: (_, i) {
         final item = widget.anekdotList[i];
+        final aspek = (item['aspek_perkembangan'] ?? '').toString().trim();
+        final tanggal = item['tanggal'] ?? '';
+        final lokasi = (item['lokasi'] ?? '').toString().trim();
+        final peristiwa = (item['peristiwa'] ?? '-').toString().trim();
+        final interpretasi = (item['interpretasi'] ?? '').toString().trim();
+        final tindakLanjut = (item['tindak_lanjut'] ?? '').toString().trim();
+        final namaGuru = item['nama_guru'] ?? '-';
+
+        // Format tanggal menjadi lebih terbaca
+        String tanggalLabel = tanggal;
+        try {
+          final dt = DateTime.parse(tanggal);
+          const bulan = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+          tanggalLabel = '${dt.day} ${bulan[dt.month]} ${dt.year}';
+        } catch (_) {}
+
         return Container(
           margin: const EdgeInsets.only(bottom: 14),
-          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: _surface, borderRadius: BorderRadius.circular(18),
-            boxShadow: [BoxShadow(color: _purple.withOpacity(0.06), blurRadius: 10, offset: const Offset(0, 3))],
-            border: Border.all(color: _purple.withOpacity(0.1)),
+            boxShadow: [BoxShadow(color: _purple.withOpacity(0.07), blurRadius: 12, offset: const Offset(0, 4))],
+            border: Border.all(color: _purple.withOpacity(0.12)),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: _purple.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.sticky_note_2_rounded, color: _purple, size: 18),
+            // ── Header ─────────────────────────────────────────────
+            Container(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+              decoration: BoxDecoration(
+                color: _purple.withOpacity(0.06),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
               ),
-              const SizedBox(width: 10),
-              Expanded(child: Text(item['aspek_perkembangan'] ?? '-',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B)))),
-              Text(item['tanggal'] ?? '',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
-            ]),
-            if ((item['lokasi'] ?? '').toString().isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Row(children: [
-                Icon(Icons.location_on_rounded, size: 13, color: Colors.grey.shade400),
-                const SizedBox(width: 4),
-                Text(item['lokasi'], style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+              child: Row(children: [
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(color: _purple.withOpacity(0.13), borderRadius: BorderRadius.circular(9)),
+                  child: const Icon(Icons.sticky_note_2_rounded, color: _purple, size: 16),
+                ),
+                const SizedBox(width: 10),
+                Expanded(child: Text(
+                  aspek.isNotEmpty ? aspek : 'Catatan Anekdot',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1E293B)),
+                  overflow: TextOverflow.ellipsis,
+                )),
+                Text(tanggalLabel,
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
               ]),
-            ],
-            const SizedBox(height: 10),
-            _anekdotSection('Peristiwa', item['peristiwa']),
-            if ((item['interpretasi'] ?? '').toString().isNotEmpty)
-              _anekdotSection('Interpretasi', item['interpretasi']),
-            if ((item['tindak_lanjut'] ?? '').toString().isNotEmpty)
-              _anekdotSection('Tindak Lanjut', item['tindak_lanjut']),
-            const SizedBox(height: 4),
-            Row(children: [
-              Icon(Icons.person_rounded, size: 13, color: Colors.grey.shade400),
-              const SizedBox(width: 4),
-              Text('Guru: ${item['nama_guru'] ?? '-'}',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontStyle: FontStyle.italic)),
-            ]),
+            ),
+            // ── Body ────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                if (lokasi.isNotEmpty) ...[
+                  Row(children: [
+                    Icon(Icons.location_on_rounded, size: 12, color: Colors.grey.shade400),
+                    const SizedBox(width: 4),
+                    Text(lokasi, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                  ]),
+                  const SizedBox(height: 8),
+                ],
+                _anekdotSection('Peristiwa', peristiwa),
+                if (interpretasi.isNotEmpty)
+                  _anekdotSection('Interpretasi', interpretasi),
+                if (tindakLanjut.isNotEmpty)
+                  _anekdotSection('Tindak Lanjut', tindakLanjut),
+                const SizedBox(height: 4),
+                Row(children: [
+                  Icon(Icons.person_rounded, size: 12, color: Colors.grey.shade400),
+                  const SizedBox(width: 4),
+                  Text('Dicatat oleh: $namaGuru',
+                      style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontStyle: FontStyle.italic)),
+                ]),
+              ]),
+            ),
           ]),
         );
       },
@@ -576,45 +607,87 @@ class _PerkembanganTabState extends State<PerkembanganTab> {
       ));
     }
 
-    return GridView.builder(
+    return ListView.builder(
       padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.85),
       itemCount: widget.karyaList.length,
       itemBuilder: (_, i) {
         final item = widget.karyaList[i];
         final colors = [_green, _blue, _purple, _teal, _rose, _amber, _orange700];
         final color = colors[i % colors.length];
+        
+        final judul = item['judul'] ?? item['nama_karya'] ?? 'Karya ${i + 1}';
+        final tanggal = item['tanggal'] ?? '';
+        final kategori = item['kategori'] ?? '-';
+        final deskripsi = item['deskripsi'] ?? '-';
+        final bahan = (item['bahan'] ?? '').toString().trim();
+        final catatanGuru = (item['catatan_guru'] ?? '').toString().trim();
+
         return Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: _surface, borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: color.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 3))],
+            color: _surface, borderRadius: BorderRadius.circular(18),
+            boxShadow: [BoxShadow(color: color.withOpacity(0.06), blurRadius: 10, offset: const Offset(0, 3))],
+            border: Border.all(color: color.withOpacity(0.1)),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Container(
-              height: 110,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [color.withOpacity(0.7), color],
-                    begin: Alignment.topLeft, end: Alignment.bottomRight),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            Row(children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                child: Icon(Icons.palette_rounded, color: color, size: 18),
               ),
-              child: const Center(child: Icon(Icons.palette_rounded, color: Colors.white, size: 38)),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(item['judul'] ?? item['nama_karya'] ?? 'Karya ${i + 1}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1E293B)),
-                    maxLines: 2, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 4),
-                Text(item['tanggal'] ?? '',
-                    style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
-              ]),
-            ),
+              const SizedBox(width: 10),
+              Expanded(child: Text(judul,
+                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B)))),
+              Text(tanggal,
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
+            ]),
+            if (kategori.isNotEmpty && kategori != '-') ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(6)),
+                child: Text('Kategori: $kategori', style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
+              ),
+            ],
+            const SizedBox(height: 10),
+            _karyaSection('Deskripsi Karya', deskripsi, color),
+            if (bahan.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              _karyaSection('Bahan / Media', bahan, color),
+            ],
+            if (catatanGuru.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              _karyaSection('Catatan Guru', catatanGuru, color),
+            ],
+            const SizedBox(height: 10),
+            Row(children: [
+              Icon(Icons.person_rounded, size: 13, color: Colors.grey.shade400),
+              const SizedBox(width: 4),
+              Text('Guru: ${item['nama_guru'] ?? '-'}',
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontStyle: FontStyle.italic)),
+            ]),
           ]),
         );
       },
     );
   }
+
+  Widget _karyaSection(String label, String? value, Color color) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
+      const SizedBox(height: 3),
+      Text(value ?? '-', style: const TextStyle(
+          fontSize: 12,
+          color: Color(0xFF334155),
+          height: 1.4,
+        ),
+      ),
+    ]),
+  );
+
+
 }
 

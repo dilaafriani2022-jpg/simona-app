@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 
 class AspekPenilaianScreen extends StatefulWidget {
-  const AspekPenilaianScreen({super.key});
+  final int? idGuru;
+  const AspekPenilaianScreen({super.key, this.idGuru});
 
   @override
   State<AspekPenilaianScreen> createState() => _AspekPenilaianScreenState();
@@ -49,7 +50,7 @@ class _AspekPenilaianScreenState extends State<AspekPenilaianScreen> {
   @override
   void initState() {
     super.initState();
-    _idGuru = 2; // Default guru ID, bisa diupdate jika tersedia di context
+    _idGuru = widget.idGuru ?? 2; // Default guru ID jika tidak diteruskan dari context
     _searchCtrl.addListener(() => setState(() {
       _searchQuery = _searchCtrl.text.toLowerCase();
       _applyFilter();

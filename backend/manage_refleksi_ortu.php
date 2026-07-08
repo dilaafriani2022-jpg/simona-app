@@ -103,7 +103,48 @@ if ($method === 'GET') {
 // ════════════════════════════════════════════════════════════════════════════
 if ($method === 'POST') {
     $body = json_decode(file_get_contents('php://input'), true) ?? [];
+    $action = $body['action'] ?? '';
 
+    // -- DELETE action --
+    if ($action === 'delete') {
+        $id = intval($body['id'] ?? 0);
+        if ($id <= 0) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'ID tidak valid']);
+            exit;
+        }
+        if ($conn->query("DELETE FROM refleksi WHERE id = $id AND tipe = 'orang_tua'")) {
+            echo json_encode(['status' => 'success', 'message' => 'Refleksi berhasil dihapus']);
+        } else {
+            http_response_code(500);
+            echo json_encode(['status' => 'error', 'message' => $conn->error]);
+        }
+        exit;
+    }
+
+    // -- UPDATE action --
+    if ($action === 'update') {
+        $id = intval($body['id'] ?? 0);
+        $judul = $conn->real_escape_string($body['judul'] ?? '');
+        $isi   = $conn->real_escape_string($body['isi'] ?? '');
+
+        if ($id <= 0 || !$isi) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'ID dan isi wajib diisi']);
+            exit;
+        }
+
+        $sql = "UPDATE refleksi SET judul = '$judul', isi = '$isi' WHERE id = $id AND tipe = 'orang_tua'";
+        if ($conn->query($sql)) {
+            echo json_encode(['status' => 'success', 'message' => 'Refleksi berhasil diperbarui']);
+        } else {
+            http_response_code(500);
+            echo json_encode(['status' => 'error', 'message' => $conn->error]);
+        }
+        exit;
+    }
+
+    // -- SAVE action (default) --
     $id_ortu  = isset($body['id_ortu'])  ? intval($body['id_ortu'])  : null;
     $id_anak = isset($body['id_anak']) ? intval($body['id_anak']) : null;
     $id_kelas = isset($body['id_kelas']) ? intval($body['id_kelas']) : null;

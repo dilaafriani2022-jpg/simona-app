@@ -6,8 +6,9 @@ import '../../services/api_service.dart';
 class PenilaianChecklistScreen extends StatefulWidget {
   final int? idGuru;
   final int? idKelas;
+  final int? idAnak;
   final bool isReadOnly;
-  const PenilaianChecklistScreen({super.key, this.idGuru, this.idKelas, this.isReadOnly = false});
+  const PenilaianChecklistScreen({super.key, this.idGuru, this.idKelas, this.idAnak, this.isReadOnly = false});
 
   @override
   State<PenilaianChecklistScreen> createState() =>
@@ -54,6 +55,7 @@ class _PenilaianChecklistScreenState extends State<PenilaianChecklistScreen>
   List<dynamic> _anakList = [];
   List<dynamic> _tujuanList = [];
   List<dynamic> _kegiatanList = [];
+  List<dynamic> _prosemList = [];
 
   // Total 18 minggu: Bulan 1-4 = 4 minggu each (1-16), Bulan 5 = 2 minggu (17-18)
   static const int _totalBulan = 5;
@@ -127,14 +129,15 @@ class _PenilaianChecklistScreenState extends State<PenilaianChecklistScreen>
 
   Future<void> _loadAll() async {
     setState(() => _isLoading = true);
-    await Future.wait([_loadPenilaian(), _loadAspek(), _loadAnak(), _loadTujuan(), _loadKegiatan()]);
+    await Future.wait([_loadPenilaian(), _loadAspek(), _loadAnak(), _loadTujuan(), _loadKegiatan(), _loadProsemList()]);
     if (mounted) setState(() => _isLoading = false);
   }
 
   Future<void> _loadPenilaian() async {
     try {
+      final idAnakParam = widget.idAnak != null ? '&id_anak=${widget.idAnak}' : '';
       final res = await ApiService.fetch(
-        'manage_penilaian.php?id_guru=${widget.idGuru ?? 2}',
+        'manage_penilaian.php?id_guru=${widget.idGuru ?? 2}$idAnakParam',
       );
       if (res['status'] == 'success') {
         _penilaianList = List<dynamic>.from(res['data'] ?? []);
@@ -191,6 +194,50 @@ class _PenilaianChecklistScreenState extends State<PenilaianChecklistScreen>
     } catch (e) {
       debugPrint(e.toString());
     }
+  }
+
+  Future<void> _loadProsemList() async {
+    try {
+      final idKelas = widget.idKelas ?? 2;
+      final res1 = await ApiService.fetch('manage_prosem.php?id_kelas=$idKelas&semester=1');
+      final res2 = await ApiService.fetch('manage_prosem.php?id_kelas=$idKelas&semester=2');
+      List<dynamic> combined = [];
+      if (res1['status'] == 'success' && res1['data'] != null) {
+        combined.addAll(res1['data']);
+      }
+      if (res2['status'] == 'success' && res2['data'] != null) {
+        combined.addAll(res2['data']);
+      }
+      _prosemList = combined;
+    } catch (e) {
+      debugPrint("Error loading prosem list: $e");
+    }
+  }
+
+  dynamic _findProsemWeekByDate(String dateStr) {
+    if (_prosemList.isEmpty || dateStr.isEmpty) return null;
+    try {
+      final date = DateTime.parse(dateStr);
+      for (final prosem in _prosemList) {
+        final startStr = prosem['tanggal_mulai']?.toString() ?? '';
+        final endStr = prosem['tanggal_selesai']?.toString() ?? '';
+        if (startStr.isNotEmpty && endStr.isNotEmpty) {
+          final start = DateTime.parse(startStr);
+          final end = DateTime.parse(endStr);
+          final compareDate = DateTime(date.year, date.month, date.day);
+          final compareStart = DateTime(start.year, start.month, start.day);
+          final compareEnd = DateTime(end.year, end.month, end.day);
+          
+          if ((compareDate.isAfter(compareStart) || compareDate.isAtSameMomentAs(compareStart)) &&
+              (compareDate.isBefore(compareEnd) || compareDate.isAtSameMomentAs(compareEnd))) {
+            return prosem;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error finding prosem week: $e");
+    }
+    return null;
   }
 
   // ════════════════════════════════════════════════════════════════════════════
@@ -2024,7 +2071,7 @@ class _PenilaianChecklistScreenState extends State<PenilaianChecklistScreen>
                         initialDate:
                             DateTime.tryParse(tanggal) ?? DateTime.now(),
                         firstDate: DateTime(2024),
-                        lastDate: DateTime.now().add(const Duration(days: 1)),
+                        lastDate: DateTime(2030),
                         builder:
                             (c, child) => Theme(
                               data: Theme.of(c).copyWith(
@@ -2036,10 +2083,15 @@ class _PenilaianChecklistScreenState extends State<PenilaianChecklistScreen>
                             ),
                       );
                       if (picked != null) {
-                        setSheet(
-                          () =>
-                              tanggal = DateFormat('yyyy-MM-dd').format(picked),
-                        );
+                        final dateFormatted = DateFormat('yyyy-MM-dd').format(picked);
+                        final matched = _findProsemWeekByDate(dateFormatted);
+                        setSheet(() {
+                          tanggal = dateFormatted;
+                          if (matched != null) {
+                            selectedSem = matched['semester']?.toString() ?? '1';
+                            selectedMinggu = matched['minggu_ke']?.toString() ?? '1';
+                          }
+                        });
                       }
                     },
                     child: Container(
@@ -2201,7 +2253,7 @@ class _PenilaianChecklistScreenState extends State<PenilaianChecklistScreen>
                     physics: const NeverScrollableScrollPhysics(),
                     mainAxisSpacing: 10,
                     crossAxisSpacing: 10,
-                    childAspectRatio: 1.0,
+                    childAspectRatio: 0.78,
                     children:
                         _statusCfg.entries.map((e) {
                           final key = e.key;
@@ -2211,7 +2263,7 @@ class _PenilaianChecklistScreenState extends State<PenilaianChecklistScreen>
                             onTap: () => setSheet(() => selectedStatus = key),
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                               decoration: BoxDecoration(
                                 color: sel ? cfg.color : cfg.bgColor,
                                 borderRadius: BorderRadius.circular(16),
@@ -2388,8 +2440,9 @@ class _PenilaianChecklistScreenState extends State<PenilaianChecklistScreen>
                 return null;
               }
 
+              final mq = MediaQuery.of(ctx);
               return Container(
-                height: MediaQuery.of(ctx).size.height * 0.93,
+                height: mq.size.height * 0.93,
                 decoration: const BoxDecoration(
                   color: Color(0xFFFDF8F3),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
@@ -2570,7 +2623,7 @@ class _PenilaianChecklistScreenState extends State<PenilaianChecklistScreen>
                     // ── Content ─────────────────────────────────────────────────
                     Expanded(
                       child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                        padding: EdgeInsets.fromLTRB(16, 14, 16, mq.viewInsets.bottom + 16),
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(

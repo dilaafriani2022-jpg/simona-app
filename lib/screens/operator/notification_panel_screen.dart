@@ -108,8 +108,9 @@ class _NotificationPanelScreenState extends State<NotificationPanelScreen> {
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: _isLoading
         ? const SizedBox.shrink()
-        : Row(children: [
-            Container(
+        : Align(
+            alignment: Alignment.centerLeft,
+            child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.2),
@@ -121,16 +122,19 @@ class _NotificationPanelScreenState extends State<NotificationPanelScreen> {
                   color: Colors.white, size: 16,
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  _alerts.isEmpty
-                    ? 'Semua data sudah lengkap ✓'
-                    : '${_alerts.length} peringatan perlu perhatian',
-                  style: GoogleFonts.poppins(
-                    color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                Flexible(
+                  child: Text(
+                    _alerts.isEmpty
+                      ? 'Semua data sudah lengkap ✓'
+                      : '${_alerts.length} peringatan perlu perhatian',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ]),
             ),
-          ]),
+          ),
     );
   }
 
@@ -220,11 +224,14 @@ class _NotificationPanelScreenState extends State<NotificationPanelScreen> {
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(judul,
                 style: GoogleFonts.poppins(
-                  fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF1E293B))),
+                  fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF1E293B)),
+                maxLines: 2, overflow: TextOverflow.ellipsis),
               const SizedBox(height: 2),
               Text(pesan,
-                style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade600, height: 1.4)),
+                style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade600, height: 1.4),
+                maxLines: 3, overflow: TextOverflow.ellipsis),
             ])),
+            const SizedBox(width: 12),
             // Count badge
             Container(
               width: 40, height: 40,
@@ -243,7 +250,7 @@ class _NotificationPanelScreenState extends State<NotificationPanelScreen> {
           padding: const EdgeInsets.all(12),
           child: SizedBox(
             width: double.infinity,
-            child: ElevatedButton.icon(
+            child: ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
                 if (route == 'manage_ortu') {
@@ -257,13 +264,28 @@ class _NotificationPanelScreenState extends State<NotificationPanelScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: lColor,
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 11),
+                padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              icon: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
-              label: Text(aksi,
-                style: GoogleFonts.poppins(
-                  color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      aksi,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

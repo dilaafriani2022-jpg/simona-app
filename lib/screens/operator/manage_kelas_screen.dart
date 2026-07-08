@@ -198,64 +198,36 @@ class _ManageKelasScreenState extends State<ManageKelasScreen> {
               ),
 
               // Form content
-              SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
-                  // ── Nama Kelas ────────────────────────────────
-                  _formSection(
-                    icon: Icons.meeting_room_rounded, title: 'Nama Kelas', color: _primary,
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      // Kelompok chips
-                      _fLabel('Kelompok Usia'),
-                      Wrap(
-                        spacing: 8, runSpacing: 8,
-                        children: kelompokPreset.map((k) {
-                          final sel = selectedKelompok == k;
-                          return GestureDetector(
-                            onTap: () => setSheet(() {
-                              selectedKelompok = k;
-                              selectedSub = '';
-                              namaCtrl.text = k;
-                            }),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                              decoration: BoxDecoration(
-                                color: sel ? _primary : Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: sel ? _primary : Colors.grey.shade200),
-                              ),
-                              child: Text(k, style: TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.w600,
-                                color: sel ? Colors.white : _slate,
-                              )),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      
-                      if (currentSubPresets.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        _fLabel('Pilih Nama Kelas (Sub-Kelompok)'),
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  
+                    // ── Nama Kelas ────────────────────────────────
+                    _formSection(
+                      icon: Icons.meeting_room_rounded, title: 'Nama Kelas', color: _primary,
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        // Kelompok chips
+                        _fLabel('Kelompok Usia'),
                         Wrap(
                           spacing: 8, runSpacing: 8,
-                          children: currentSubPresets.map((sub) {
-                            final sel = selectedSub == sub;
+                          children: kelompokPreset.map((k) {
+                            final sel = selectedKelompok == k;
                             return GestureDetector(
                               onTap: () => setSheet(() {
-                                selectedSub = sub;
-                                namaCtrl.text = "$selectedKelompok - $selectedSub";
+                                selectedKelompok = k;
+                                selectedSub = '';
+                                namaCtrl.text = k;
                               }),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 200),
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                                 decoration: BoxDecoration(
-                                  color: sel ? _amber : Colors.white,
+                                  color: sel ? _primary : Colors.white,
                                   borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: sel ? _amber : Colors.grey.shade200),
+                                  border: Border.all(color: sel ? _primary : Colors.grey.shade200),
                                 ),
-                                child: Text(sub, style: TextStyle(
+                                child: Text(k, style: TextStyle(
                                   fontSize: 12, fontWeight: FontWeight.w600,
                                   color: sel ? Colors.white : _slate,
                                 )),
@@ -263,79 +235,109 @@ class _ManageKelasScreenState extends State<ManageKelasScreen> {
                             );
                           }).toList(),
                         ),
-                      ],
-
-                      const SizedBox(height: 12),
-                      _fLabel('Nama Kelas Lengkap *'),
-                      _fField(namaCtrl, Icons.meeting_room_rounded, 'Misal: Kelompok A - Pattimura'),
+                        
+                        if (currentSubPresets.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          _fLabel('Pilih Nama Kelas (Sub-Kelompok)'),
+                          Wrap(
+                            spacing: 8, runSpacing: 8,
+                            children: currentSubPresets.map((sub) {
+                              final sel = selectedSub == sub;
+                              return GestureDetector(
+                                onTap: () => setSheet(() {
+                                  selectedSub = sub;
+                                  namaCtrl.text = "$selectedKelompok - $selectedSub";
+                                }),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                  decoration: BoxDecoration(
+                                    color: sel ? _amber : Colors.white,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: sel ? _amber : Colors.grey.shade200),
+                                  ),
+                                  child: Text(sub, style: TextStyle(
+                                    fontSize: 12, fontWeight: FontWeight.w600,
+                                    color: sel ? Colors.white : _slate,
+                                  )),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
+  
+                        const SizedBox(height: 12),
+                        _fLabel('Nama Kelas Lengkap *'),
+                        _fField(namaCtrl, Icons.meeting_room_rounded, 'Misal: Kelompok A - Pattimura'),
+                      ]),
+                    ),
+                    const SizedBox(height: 12),
+  
+                  // ── Tahun Ajaran ──────────────────────────────
+                  _formSection(
+                    icon: Icons.calendar_month_rounded, title: 'Tahun Ajaran', color: _navy,
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      _fLabel('Hubungkan ke Tahun Ajaran *'),
+                      if (_tahunList.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(color: _amber.withOpacity(0.08), borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: _amber.withOpacity(0.2))),
+                          child: Row(children: [
+                            Icon(Icons.warning_amber_rounded, color: _amber, size: 18),
+                            const SizedBox(width: 8),
+                            const Expanded(child: Text('Belum ada tahun ajaran. Tambahkan tahun ajaran terlebih dahulu.',
+                              style: TextStyle(fontSize: 12))),
+                          ]),
+                        )
+                      else
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: DropdownButtonHideUnderline(child: DropdownButton<String>(
+                            value: selectedTahunId,
+                            isExpanded: true,
+                            hint: Row(children: [
+                              Icon(Icons.calendar_today_rounded, size: 16, color: Colors.grey.shade400),
+                              const SizedBox(width: 8),
+                              Text('Pilih tahun ajaran', style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
+                            ]),
+                            icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                            items: _tahunList.map((t) {
+                              final isAktif = t['status']?.toString() == 'aktif';
+                              return DropdownMenuItem<String>(
+                                value: t['id'].toString(),
+                                child: Row(children: [
+                                  Container(
+                                    width: 8, height: 8,
+                                    decoration: BoxDecoration(
+                                      color: isAktif ? Colors.green : Colors.grey,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(t['tahun'] ?? '-', style: const TextStyle(fontSize: 14)),
+                                  const SizedBox(width: 6),
+                                  if (isAktif) Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                                    child: const Text('Aktif', style: TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold)),
+                                  ),
+                                ]),
+                              );
+                            }).toList(),
+                            onChanged: (v) => setSheet(() => selectedTahunId = v),
+                          )),
+                        ),
                     ]),
                   ),
-                  const SizedBox(height: 12),
-
-                // ── Tahun Ajaran ──────────────────────────────
-                _formSection(
-                  icon: Icons.calendar_month_rounded, title: 'Tahun Ajaran', color: _navy,
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    _fLabel('Hubungkan ke Tahun Ajaran *'),
-                    if (_tahunList.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(color: _amber.withOpacity(0.08), borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: _amber.withOpacity(0.2))),
-                        child: Row(children: [
-                          Icon(Icons.warning_amber_rounded, color: _amber, size: 18),
-                          const SizedBox(width: 8),
-                          const Expanded(child: Text('Belum ada tahun ajaran. Tambahkan tahun ajaran terlebih dahulu.',
-                            style: TextStyle(fontSize: 12))),
-                        ]),
-                      )
-                    else
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: DropdownButtonHideUnderline(child: DropdownButton<String>(
-                          value: selectedTahunId,
-                          isExpanded: true,
-                          hint: Row(children: [
-                            Icon(Icons.calendar_today_rounded, size: 16, color: Colors.grey.shade400),
-                            const SizedBox(width: 8),
-                            Text('Pilih tahun ajaran', style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
-                          ]),
-                          icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                          items: _tahunList.map((t) {
-                            final isAktif = t['status']?.toString() == 'aktif';
-                            return DropdownMenuItem<String>(
-                              value: t['id'].toString(),
-                              child: Row(children: [
-                                Container(
-                                  width: 8, height: 8,
-                                  decoration: BoxDecoration(
-                                    color: isAktif ? Colors.green : Colors.grey,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(t['tahun'] ?? '-', style: const TextStyle(fontSize: 14)),
-                                const SizedBox(width: 6),
-                                if (isAktif) Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-                                  child: const Text('Aktif', style: TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold)),
-                                ),
-                              ]),
-                            );
-                          }).toList(),
-                          onChanged: (v) => setSheet(() => selectedTahunId = v),
-                        )),
-                      ),
-                  ]),
-                ),
-                const SizedBox(height: 20),
-              ]),
+                  const SizedBox(height: 20),
+                ]),
+              ),
             ),
 
             // Buttons
@@ -701,20 +703,39 @@ class _ManageKelasScreenState extends State<ManageKelasScreen> {
   }
 
   Widget _statBox(String label, String value, IconData icon, Color color) => Expanded(child: Container(
-    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
     decoration: BoxDecoration(
       color: color.withOpacity(0.07),
       borderRadius: BorderRadius.circular(14),
       border: Border.all(color: color.withOpacity(0.15)),
     ),
     child: Row(children: [
-      Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
-        child: Icon(icon, color: color, size: 18)),
-      const SizedBox(width: 10),
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
-        Text(label, style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
-      ]),
+      Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
+        child: Icon(icon, color: color, size: 16),
+      ),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              value,
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: color, height: 1.1),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 10, color: _slate, fontWeight: FontWeight.w500, height: 1.2),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
     ]),
   ));
 

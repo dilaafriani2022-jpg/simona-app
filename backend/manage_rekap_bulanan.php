@@ -47,25 +47,7 @@ function nilaiStatus(string $status): int {
     };
 }
 
-// ── Auto-migration: pastikan tabel rekap_penilaian_bulanan ada ──────────────
-$conn->query("
-    CREATE TABLE IF NOT EXISTS rekap_penilaian_bulanan (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        id_anak INT NOT NULL,
-        id_guru INT NOT NULL,
-        id_kegiatan INT NOT NULL,
-        bulan TINYINT NOT NULL,
-        semester TINYINT DEFAULT 1,
-        status_akhir ENUM('TM','MM','M') NOT NULL,
-        catatan_perkembangan TEXT DEFAULT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (id_anak) REFERENCES anak(id) ON DELETE CASCADE,
-        FOREIGN KEY (id_guru) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (id_kegiatan) REFERENCES kegiatan_pembelajaran(id) ON DELETE CASCADE,
-        UNIQUE KEY unique_rekap (id_anak, id_kegiatan, bulan, semester)
-    )
-");
-
+// ── Auto-migration: pastikan tabel rekap_aspek_bulanan & rekap_penilaian_bulanan ada ──────────────────
 $conn->query("
     CREATE TABLE IF NOT EXISTS rekap_aspek_bulanan (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -77,12 +59,29 @@ $conn->query("
         narasi_jati_diri TEXT DEFAULT NULL,
         narasi_literasi_steam TEXT DEFAULT NULL,
         narasi_kokurikuler TEXT DEFAULT NULL,
-        status_validasi ENUM('menunggu', 'disetujui') DEFAULT 'menunggu',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (id_anak) REFERENCES anak(id) ON DELETE CASCADE,
         FOREIGN KEY (id_guru) REFERENCES users(id) ON DELETE CASCADE,
         UNIQUE KEY unique_student_month (id_anak, bulan, semester)
     )
+");
+
+$conn->query("
+    CREATE TABLE IF NOT EXISTS rekap_penilaian_bulanan (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        id_anak INT NOT NULL,
+        id_guru INT NOT NULL,
+        id_kegiatan INT NOT NULL,
+        bulan TINYINT NOT NULL,
+        semester TINYINT DEFAULT 1,
+        status_akhir ENUM('TM', 'MM', 'M') NOT NULL,
+        catatan_perkembangan TEXT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (id_anak) REFERENCES anak(id) ON DELETE CASCADE,
+        FOREIGN KEY (id_guru) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (id_kegiatan) REFERENCES kegiatan_pembelajaran(id) ON DELETE CASCADE,
+        UNIQUE KEY unique_rekap (id_anak, id_kegiatan, bulan, semester)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
 ");
 
 $method = $_SERVER['REQUEST_METHOD'];
@@ -108,44 +107,6 @@ if ($method === 'GET') {
         $real_guru_id = $id_guru;
     }
 
-    // ── VIEW: Ambil rekap bulanan yang sudah tersimpan ──────────────────────
-    if ($type === 'view') {
-        if (!$id_anak && !$id_kelas) {
-            respond(["status" => "error", "message" => "id_anak atau id_kelas wajib diisi"]);
-        }
-
-        $sql = "SELECT
-                    rb.*,
-                    a.nama_anak AS nama_anak,
-                    kg.nama_kegiatan,
-                    tp.nama_tujuan,
-                    ap.nama_aspek
-                FROM rekap_penilaian_bulanan rb
-                JOIN anak a ON rb.id_anak = a.id
-                JOIN kegiatan_pembelajaran kg ON rb.id_kegiatan = kg.id
-                JOIN tujuan_pembelajaran tp ON kg.id_tujuan = tp.id
-                JOIN aspek_penilaian ap ON tp.id_aspek = ap.id
-                WHERE rb.semester = $semester";
-
-        if ($id_guru && $real_guru_id > 0) {
-            $sql .= " AND rb.id_guru = $real_guru_id";
-        }
-        if ($id_anak) $sql .= " AND rb.id_anak = $id_anak";
-        if ($id_kelas) $sql .= " AND a.id_kelas = $id_kelas";
-        if ($bulan)    $sql .= " AND rb.bulan = $bulan";
-
-        $sql .= " ORDER BY a.nama_anak ASC, rb.bulan ASC, ap.nama_aspek ASC";
-
-        $result = $conn->query($sql);
-        if (!$result) {
-            respond(["status" => "error", "message" => $conn->error]);
-        }
-
-        $data = [];
-        while ($row = $result->fetch_assoc()) $data[] = $row;
-
-        respond(["status" => "success", "data" => $data]);
-    }
 
     // ── REKOMENDASI: Hitung status terbaik dari penilaian checklist mingguan ─
     if ($type === 'rekomendasi') {
@@ -211,29 +172,39 @@ if ($method === 'GET') {
             }
         }
 
-        // Cek apakah rekap bulan ini sudah pernah disimpan
-        $saved = $conn->query(
-            "SELECT id_kegiatan, status_akhir, catatan_perkembangan
-             FROM rekap_penilaian_bulanan
-             WHERE id_anak = $id_anak AND id_guru = $real_guru_id
-               AND bulan = $bulan AND semester = $semester"
-        );
+        // Load already saved monthly summaries
+        $savedSql = "SELECT id_kegiatan, status_akhir, catatan_perkembangan 
+                     FROM rekap_penilaian_bulanan 
+                     WHERE id_anak = $id_anak 
+                       AND semester = $semester 
+                       AND bulan = $bulan";
+        $savedRes = $conn->query($savedSql);
         $savedMap = [];
-        if ($saved) {
-            while ($s = $saved->fetch_assoc()) {
-                $savedMap[$s['id_kegiatan']] = $s;
+        if ($savedRes) {
+            while ($sRow = $savedRes->fetch_assoc()) {
+                $savedMap[(int)$sRow['id_kegiatan']] = [
+                    'status_akhir' => $sRow['status_akhir'],
+                    'catatan_perkembangan' => $sRow['catatan_perkembangan']
+                ];
             }
         }
 
-        // Gabungkan data rekap tersimpan ke dalam rekomendasi
+        // Set values and check if already saved
         foreach ($kegiatanMap as &$item) {
             $kid = $item['id_kegiatan'];
             if (isset($savedMap[$kid])) {
-                $item['status_tersimpan']      = $savedMap[$kid]['status_akhir'];
-                $item['catatan_tersimpan']     = $savedMap[$kid]['catatan_perkembangan'];
-                $item['sudah_direkap']         = true;
+                $item['sudah_direkap'] = true;
+                // Send both key names for Flutter compatibility
+                $item['status_akhir']      = $savedMap[$kid]['status_akhir'];
+                $item['status_tersimpan']  = $savedMap[$kid]['status_akhir'];       // alias for Flutter
+                $item['catatan_perkembangan'] = $savedMap[$kid]['catatan_perkembangan'];
+                $item['catatan_tersimpan'] = $savedMap[$kid]['catatan_perkembangan']; // alias for Flutter
             } else {
                 $item['sudah_direkap'] = false;
+                $item['status_akhir']  = $item['status_rekomendasi']; // default to recommendation
+                $item['status_tersimpan']  = null;
+                $item['catatan_perkembangan'] = '';
+                $item['catatan_tersimpan']    = null;
             }
         }
 
@@ -370,32 +341,6 @@ if ($method === 'GET') {
             }
         }
 
-            // 4. Ambil dari rekap_penilaian_bulanan (jika guru sudah mengisi per kegiatan)
-            $rekap_keg_sql = "SELECT rb.catatan_perkembangan, tp.id_aspek 
-                              FROM rekap_penilaian_bulanan rb
-                              JOIN kegiatan_pembelajaran kg ON rb.id_kegiatan = kg.id
-                              JOIN tujuan_pembelajaran tp ON kg.id_tujuan = tp.id
-                              WHERE rb.id_anak = $id_anak 
-                                AND rb.bulan = $bulan 
-                                AND rb.semester = $semester
-                                AND rb.catatan_perkembangan IS NOT NULL 
-                                AND rb.catatan_perkembangan != ''";
-            $rekap_keg_res = $conn->query($rekap_keg_sql);
-            if ($rekap_keg_res) {
-                while ($row = $rekap_keg_res->fetch_assoc()) {
-                    $asp = (int)$row['id_aspek'];
-                    $text = trim($row['catatan_perkembangan']);
-                    if ($asp == 1) {
-                        $catatan_agama[] = $text;
-                    } elseif ($asp == 3) {
-                        $catatan_jati_diri[] = $text;
-                    } elseif ($asp == 6) {
-                        $catatan_literasi_steam[] = $text;
-                    } else {
-                        $catatan_literasi_steam[] = $text;
-                    }
-                }
-            }
 
             // Menghilangkan duplikasi catatan
             $catatan_agama = array_unique($catatan_agama);
@@ -457,10 +402,73 @@ if ($method === 'GET') {
                     "is_draft" => true
                 ]
             ]);
-        }
     }
 
-    respond(["status" => "error", "message" => "Parameter type tidak valid. Gunakan 'view', 'rekomendasi', atau 'narasi_aspek'"]);
+    // ── REKAP KEGIATAN ORTU: Tampilkan rekap yg sudah disimpan guru untuk ortu ─
+    if ($type === 'rekap_kegiatan_ortu') {
+        if (!$id_anak || !$bulan) {
+            respond(["status" => "error", "message" => "id_anak dan bulan wajib diisi"]);
+        }
+
+        // Ambil rekap yang sudah disimpan guru dari rekap_penilaian_bulanan
+        $sql = "SELECT 
+                    rpb.id,
+                    rpb.id_kegiatan,
+                    rpb.status_akhir,
+                    rpb.catatan_perkembangan,
+                    kg.nama_kegiatan,
+                    tp.id_aspek,
+                    tp.nama_tujuan,
+                    ap.nama_aspek
+                FROM rekap_penilaian_bulanan rpb
+                JOIN kegiatan_pembelajaran kg ON rpb.id_kegiatan = kg.id
+                JOIN tujuan_pembelajaran tp ON kg.id_tujuan = tp.id
+                JOIN aspek_penilaian ap ON tp.id_aspek = ap.id
+                WHERE rpb.id_anak = $id_anak
+                  AND rpb.semester = $semester
+                  AND rpb.bulan = $bulan
+                ORDER BY ap.nama_aspek ASC, kg.nama_kegiatan ASC";
+
+        $result = $conn->query($sql);
+        if (!$result) {
+            respond(["status" => "error", "message" => $conn->error]);
+        }
+
+        $data = [];
+        while ($row = $result->fetch_assoc()) {
+            $data[] = $row;
+        }
+
+        // Group by aspek
+        $grouped = [];
+        foreach ($data as $item) {
+            $aspekName = $item['nama_aspek'];
+            if (!isset($grouped[$aspekName])) {
+                $grouped[$aspekName] = [
+                    'nama_aspek' => $aspekName,
+                    'id_aspek' => $item['id_aspek'],
+                    'kegiatan' => []
+                ];
+            }
+            $grouped[$aspekName]['kegiatan'][] = [
+                'id_kegiatan' => $item['id_kegiatan'],
+                'nama_kegiatan' => $item['nama_kegiatan'],
+                'nama_tujuan' => $item['nama_tujuan'],
+                'status_akhir' => $item['status_akhir'],
+                'catatan_perkembangan' => $item['catatan_perkembangan'] ?? ''
+            ];
+        }
+
+        respond([
+            "status" => "success",
+            "bulan" => $bulan,
+            "semester" => $semester,
+            "total_kegiatan" => count($data),
+            "data" => array_values($grouped)
+        ]);
+    }
+
+    respond(["status" => "error", "message" => "Parameter type tidak valid. Gunakan 'view', 'rekomendasi', 'narasi_aspek', atau 'rekap_kegiatan_ortu'"]);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -470,39 +478,6 @@ elseif ($method === 'POST') {
     $input  = json_decode(file_get_contents("php://input"), true) ?? [];
     $action = $input['action'] ?? '';
 
-    if ($action === 'validate_raport') {
-        $id_anak = intval($input['id_anak'] ?? 0);
-        $bulan    = intval($input['bulan']    ?? 6);
-        $semester = intval($input['semester'] ?? 1);
-        $status_validasi = trim($input['status_validasi'] ?? 'disetujui');
-
-        if ($id_anak <= 0) {
-            respond(["status" => "error", "message" => "id_anak wajib diisi"]);
-        }
-
-        if (!in_array($status_validasi, ['menunggu', 'disetujui'])) {
-            respond(["status" => "error", "message" => "status_validasi tidak valid. Gunakan 'menunggu' atau 'disetujui'."]);
-        }
-
-        // Cek apakah data rekap sudah ada
-        $check = $conn->query("SELECT id FROM rekap_aspek_bulanan WHERE id_anak = $id_anak AND bulan = $bulan AND semester = $semester");
-        if (!$check || $check->num_rows === 0) {
-            respond(["status" => "error", "message" => "Laporan rekap aspek bulanan belum dibuat oleh guru"]);
-        }
-
-        $stmt = $conn->prepare(
-            "UPDATE rekap_aspek_bulanan 
-             SET status_validasi = ? 
-             WHERE id_anak = ? AND bulan = ? AND semester = ?"
-        );
-        $stmt->bind_param("siii", $status_validasi, $id_anak, $bulan, $semester);
-
-        if ($stmt->execute()) {
-            respond(["status" => "success", "message" => "Status validasi laporan berhasil diperbarui menjadi '$status_validasi'"]);
-        } else {
-            respond(["status" => "error", "message" => $stmt->error]);
-        }
-    }
 
     $id_guru_user = intval($input['id_guru'] ?? 0);
     if ($id_guru_user <= 0) {
@@ -515,98 +490,9 @@ elseif ($method === 'POST') {
         respond(["status" => "error", "message" => "Guru tidak ditemukan"]);
     }
 
-    // ── SAVE / UPDATE REKAP SATU KEGIATAN ───────────────────────────────────
-    if ($action === 'save') {
-        $id_anak    = intval($input['id_anak']    ?? 0);
-        $id_kegiatan = intval($input['id_kegiatan'] ?? 0);
-        $bulan       = intval($input['bulan']       ?? 0);
-        $semester    = intval($input['semester']    ?? 1);
-        $status_akhir = trim($input['status_akhir'] ?? '');
-        $catatan     = trim($input['catatan_perkembangan'] ?? '');
-
-        if ($id_anak <= 0 || $id_kegiatan <= 0 || $bulan <= 0) {
-            respond(["status" => "error", "message" => "id_anak, id_kegiatan, dan bulan wajib diisi"]);
-        }
-
-        $validStatus = ['TM', 'MM', 'M'];
-        if (!in_array($status_akhir, $validStatus)) {
-            respond(["status" => "error", "message" => "Status akhir tidak valid. Gunakan: TM, MM, atau M"]);
-        }
-
-        $stmt = $conn->prepare(
-            "INSERT INTO rekap_penilaian_bulanan
-                (id_anak, id_guru, id_kegiatan, bulan, semester, status_akhir, catatan_perkembangan)
-             VALUES (?, ?, ?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE
-                status_akhir = VALUES(status_akhir),
-                catatan_perkembangan = VALUES(catatan_perkembangan)"
-        );
-        $stmt->bind_param("iiiiiss",
-            $id_anak, $real_guru_id, $id_kegiatan,
-            $bulan, $semester, $status_akhir, $catatan
-        );
-
-        if ($stmt->execute()) {
-            respond(["status" => "success", "message" => "Rekap bulanan berhasil disimpan", "id" => $conn->insert_id]);
-        } else {
-            respond(["status" => "error", "message" => $stmt->error]);
-        }
-    }
-
-    // ── SAVE BATCH: Simpan seluruh rekap bulan sekaligus ────────────────────
-    elseif ($action === 'save_batch') {
-        $id_anak = intval($input['id_anak'] ?? 0);
-        $bulan    = intval($input['bulan']    ?? 0);
-        $semester = intval($input['semester'] ?? 1);
-        $items    = $input['items']           ?? []; // array of {id_kegiatan, status_akhir, catatan_perkembangan}
-
-        if ($id_anak <= 0 || $bulan <= 0 || empty($items)) {
-            respond(["status" => "error", "message" => "id_anak, bulan, dan items wajib diisi"]);
-        }
-
-        $validStatus = ['TM', 'MM', 'M'];
-        $saved = 0;
-        $errors = [];
-
-        $stmt = $conn->prepare(
-            "INSERT INTO rekap_penilaian_bulanan
-                (id_anak, id_guru, id_kegiatan, bulan, semester, status_akhir, catatan_perkembangan)
-             VALUES (?, ?, ?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE
-                status_akhir = VALUES(status_akhir),
-                catatan_perkembangan = VALUES(catatan_perkembangan)"
-        );
-
-        foreach ($items as $item) {
-            $id_kegiatan  = intval($item['id_kegiatan'] ?? 0);
-            $status_akhir = trim($item['status_akhir']  ?? '');
-            $catatan      = trim($item['catatan_perkembangan'] ?? '');
-
-            if ($id_kegiatan <= 0 || !in_array($status_akhir, $validStatus)) {
-                $errors[] = "Item kegiatan ID $id_kegiatan tidak valid";
-                continue;
-            }
-
-            $stmt->bind_param("iiiiiss",
-                $id_anak, $real_guru_id, $id_kegiatan,
-                $bulan, $semester, $status_akhir, $catatan
-            );
-            if ($stmt->execute()) {
-                $saved++;
-            } else {
-                $errors[] = "Gagal simpan kegiatan ID $id_kegiatan: " . $stmt->error;
-            }
-        }
-
-        respond([
-            "status"  => count($errors) === 0 ? "success" : "partial",
-            "message" => "$saved rekap berhasil disimpan",
-            "errors"  => $errors
-        ]);
-    }
 
     // ── SAVE / UPDATE NARASI ASPEK BULANAN ──────────────────────────────────
-    elseif ($action === 'save_narasi_aspek') {
+    if ($action === 'save_narasi_aspek') {
         $id_anak = intval($input['id_anak'] ?? 0);
         $bulan    = intval($input['bulan']    ?? 0);
         $semester = intval($input['semester'] ?? 1);
@@ -627,8 +513,7 @@ elseif ($method === 'POST') {
                 narasi_agama = VALUES(narasi_agama),
                 narasi_jati_diri = VALUES(narasi_jati_diri),
                 narasi_literasi_steam = VALUES(narasi_literasi_steam),
-                narasi_kokurikuler = VALUES(narasi_kokurikuler),
-                status_validasi = 'menunggu'"
+                narasi_kokurikuler = VALUES(narasi_kokurikuler)"
         );
         
         $stmt->bind_param("iiiissss",
@@ -643,13 +528,64 @@ elseif ($method === 'POST') {
         }
     }
 
+    // ── SAVE BATCH REKAP PENILAIAN BULANAN ──────────────────────────────────
+    elseif ($action === 'save_batch' || $action === 'save') {
+        $id_anak = intval($input['id_anak'] ?? 0);
+        $bulan    = intval($input['bulan']    ?? 0);
+        $semester = intval($input['semester'] ?? 1);
+        $items    = $input['items'] ?? [];
+
+        if ($id_anak <= 0 || $bulan <= 0) {
+            respond(["status" => "error", "message" => "id_anak dan bulan wajib diisi"]);
+        }
+
+        if (!is_array($items)) {
+            respond(["status" => "error", "message" => "items harus berupa array"]);
+        }
+
+        // Start transaction for consistency
+        $conn->begin_transaction();
+        try {
+            $stmt = $conn->prepare(
+                "INSERT INTO rekap_penilaian_bulanan
+                    (id_anak, id_guru, id_kegiatan, bulan, semester, status_akhir, catatan_perkembangan)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE
+                    status_akhir = VALUES(status_akhir),
+                    catatan_perkembangan = VALUES(catatan_perkembangan)"
+            );
+
+            foreach ($items as $item) {
+                $id_kegiatan = intval($item['id_kegiatan'] ?? 0);
+                $status_akhir = trim($item['status_akhir'] ?? '');
+                $catatan = isset($item['catatan_perkembangan']) ? trim($item['catatan_perkembangan']) : null;
+
+                if ($id_kegiatan <= 0 || !in_array($status_akhir, ['TM', 'MM', 'M'])) {
+                    continue; // Skip invalid entries
+                }
+
+                $stmt->bind_param("iiiiiss",
+                    $id_anak, $real_guru_id, $id_kegiatan,
+                    $bulan, $semester, $status_akhir, $catatan
+                );
+                $stmt->execute();
+            }
+
+            $conn->commit();
+            respond(["status" => "success", "message" => "Rekap penilaian bulanan berhasil disimpan"]);
+        } catch (Exception $e) {
+            $conn->rollback();
+            respond(["status" => "error", "message" => "Database error: " . $e->getMessage()]);
+        }
+    }
+
     // ── DELETE ───────────────────────────────────────────────────────────────
     elseif ($action === 'delete') {
         $id = intval($input['id'] ?? 0);
         if ($id <= 0) {
             respond(["status" => "error", "message" => "ID rekap tidak valid"]);
         }
-        if ($conn->query("DELETE FROM rekap_penilaian_bulanan WHERE id = $id AND id_guru = $real_guru_id")) {
+        if ($conn->query("DELETE FROM rekap_aspek_bulanan WHERE id = $id AND id_guru = $real_guru_id")) {
             respond(["status" => "success", "message" => "Rekap bulanan berhasil dihapus"]);
         } else {
             respond(["status" => "error", "message" => $conn->error]);

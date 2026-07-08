@@ -22,10 +22,10 @@ class LaporanTab extends StatelessWidget {
   final Map<String, dynamic> narasiData;
   final Map<String, dynamic> kehadiranStats;
   final List<dynamic> ekskulList;
-  final List<dynamic> activityRecaps;
   final List<dynamic> checklistRingkasan;
   final List<dynamic> anekdotList;
   final List<dynamic> karyaList;
+  final List<dynamic> rekapKegiatanList;
   final bool isLoading;
   final bool isLoadingMonthlyRecap;
   final Future<void> Function() onRefresh;
@@ -40,10 +40,10 @@ class LaporanTab extends StatelessWidget {
     required this.narasiData,
     required this.kehadiranStats,
     required this.ekskulList,
-    required this.activityRecaps,
     required this.checklistRingkasan,
     required this.anekdotList,
     required this.karyaList,
+    required this.rekapKegiatanList,
     required this.isLoading,
     required this.isLoadingMonthlyRecap,
     required this.onRefresh,
@@ -54,8 +54,6 @@ class LaporanTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDraft = narasiData['is_draft'] == true || narasiData.isEmpty;
-    final isPendingValidation = narasiData['status_validasi'] == 'menunggu';
-    final isApproved = narasiData['status_validasi'] == 'disetujui';
 
     return CustomScrollView(
       slivers: [
@@ -251,21 +249,17 @@ class LaporanTab extends StatelessWidget {
                         icon: Icons.edit_note_rounded,
                       ),
                       const SizedBox(height: 14),
-                    ] else if (isPendingValidation) ...[
-                      _buildStatusBanner(
-                        title: 'Menunggu Validasi Kepala Sekolah',
-                        message: 'Narasi laporan perkembangan periode ini sedang dalam proses peninjauan dan validasi oleh Kepala Sekolah. Rekap penilaian di bawah dapat Anda pantau secara langsung.',
-                        color: _amber,
-                        icon: Icons.lock_clock_rounded,
-                      ),
-                      const SizedBox(height: 14),
                     ],
 
                     _buildAspekCardLaporan(),
                     const SizedBox(height: 14),
                     _buildEkskulCardLaporan(),
+
                     const SizedBox(height: 20),
-                    _buildActivityRecapsCard(),
+                    _buildSectionHeader('Rekap Kegiatan Pembelajaran', Icons.assignment_turned_in_rounded, _orange700),
+                    const SizedBox(height: 12),
+                    _buildRekapKegiatanCard(),
+
                     const SizedBox(height: 20),
                     _buildSectionHeader('Ringkasan Checklist', Icons.checklist_rounded, _green),
                     const SizedBox(height: 12),
@@ -275,6 +269,7 @@ class LaporanTab extends StatelessWidget {
                     const SizedBox(height: 20),
                     _buildKaryaCardLaporan(),
                   ],
+
                 ],
               ],
             ),
@@ -405,7 +400,7 @@ class LaporanTab extends StatelessWidget {
     final semLabel = semester == 1 ? 'Ganjil' : 'Genap';
     final tahunAjaran = (narasiData['tahun_ajaran'] != null && narasiData['tahun_ajaran'] != '-')
         ? narasiData['tahun_ajaran']
-        : (anak?['tahun'] ?? '2024 / 2025');
+        : (anak?['tahun'] ?? '-');
 
     return Container(
       width: double.infinity,
@@ -640,7 +635,7 @@ class LaporanTab extends StatelessWidget {
 
   Widget _kehadiranStatBox(String label, String value, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
         borderRadius: BorderRadius.circular(12),
@@ -648,22 +643,31 @@ class LaporanTab extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text(
-            value,
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: color.withOpacity(0.8),
-              fontWeight: FontWeight.w600,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color),
             ),
           ),
-          Text(
-            'Hari',
-            style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                color: color.withOpacity(0.8),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              'Hari',
+              style: TextStyle(fontSize: 9, color: Colors.grey.shade500),
+            ),
           ),
         ],
       ),
@@ -756,177 +760,6 @@ class LaporanTab extends StatelessWidget {
     );
   }
 
-  Widget _buildActivityRecapsCard() {
-    if (activityRecaps.isEmpty) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: _surface,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            )
-          ],
-          border: Border.all(color: Colors.grey.shade100),
-        ),
-        child: const Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Text(
-              'Belum ada rekap kegiatan pembelajaran untuk bulan ini.',
-              style: TextStyle(color: _slate, fontSize: 12, fontStyle: FontStyle.italic),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionHeader('Rekap Kegiatan Pembelajaran', Icons.menu_book_rounded, _purple),
-        const SizedBox(height: 12),
-        ...activityRecaps.map((item) => _buildActivityRecapItem(item)),
-      ],
-    );
-  }
-
-  Widget _buildActivityRecapItem(dynamic item) {
-    final aspect = item['nama_aspek'] ?? '-';
-    final goal = item['nama_tujuan'] ?? '-';
-    final activity = item['nama_kegiatan'] ?? '-';
-    final status = item['status_akhir'] ?? 'TM';
-    final note = item['catatan_perkembangan'] ?? '';
-
-    Color statusColor;
-    String statusLong;
-    switch (status) {
-      case 'M':
-        statusColor = _green;
-        statusLong = 'Memuaskan (M)';
-        break;
-      case 'MM':
-        statusColor = _amber;
-        statusLong = 'Mulai Muncul (MM)';
-        break;
-      case 'TM':
-      default:
-        statusColor = _rose;
-        statusLong = 'Belum Muncul (TM)';
-        break;
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-        border: Border.all(color: Colors.grey.shade100),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Aspect badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: _purple.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              '$aspect • $goal',
-              style: const TextStyle(
-                color: _purple,
-                fontWeight: FontWeight.bold,
-                fontSize: 10,
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          // Activity name
-          Text(
-            activity,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1E293B),
-              fontSize: 13.5,
-            ),
-          ),
-          const SizedBox(height: 10),
-          // Status Row
-          Row(
-            children: [
-              const Text(
-                'Status Capaian: ',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _slate),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: statusColor.withOpacity(0.3)),
-                ),
-                child: Text(
-                  statusLong,
-                  style: TextStyle(
-                    color: statusColor,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          // Teacher's note/comment
-          if (note.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.comment_rounded, size: 12, color: _slate),
-                      SizedBox(width: 6),
-                      Text(
-                        'Catatan Guru:',
-                        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: _slate),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    note,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF334155), height: 1.45),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 
   Widget _buildChecklistRingkasan() {
     if (checklistRingkasan.isEmpty) {
@@ -1024,6 +857,229 @@ class LaporanTab extends StatelessWidget {
     );
   }
 
+  Widget _buildRekapKegiatanCard() {
+    if (rekapKegiatanList.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: _surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade100),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.assignment_outlined, size: 40, color: Colors.grey.shade300),
+            const SizedBox(height: 12),
+            Text(
+              'Belum ada rekap kegiatan',
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade500, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Guru belum mempublikasikan rekap kegiatan pembelajaran untuk bulan ini.',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    final statusColors = {
+      'M': _green,
+      'MM': _blue,
+      'TM': _rose,
+    };
+
+    final statusLabels = {
+      'M': 'Berkembang Sesuai Harapan',
+      'MM': 'Mulai Berkembang',
+      'TM': 'Belum Berkembang',
+    };
+
+    return Column(
+      children: rekapKegiatanList.map<Widget>((aspekGroup) {
+        final aspekName = aspekGroup['nama_aspek'] ?? '';
+        final kegiatanList = aspekGroup['kegiatan'] as List<dynamic>? ?? [];
+        final aspekColor = aspekName.toLowerCase().contains('agama') ? _orange700
+            : aspekName.toLowerCase().contains('jati') ? _blue
+            : aspekName.toLowerCase().contains('literasi') || aspekName.toLowerCase().contains('steam') ? _green
+            : _purple;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          decoration: BoxDecoration(
+            color: _surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: aspekColor.withOpacity(0.15)),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Aspek header
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: aspekColor.withOpacity(0.08),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+                  border: Border(bottom: BorderSide(color: aspekColor.withOpacity(0.12))),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: aspekColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.category_rounded, color: aspekColor, size: 16),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        aspekName,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: aspekColor,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: aspekColor.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '${kegiatanList.length} kegiatan',
+                        style: TextStyle(fontSize: 10, color: aspekColor, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Kegiatan list
+              ...kegiatanList.asMap().entries.map<Widget>((entry) {
+                final idx = entry.key;
+                final item = entry.value;
+                final status = item['status_akhir']?.toString() ?? 'TM';
+                final statusColor = statusColors[status] ?? _slate;
+                final statusLabel = statusLabels[status] ?? status;
+                final catatan = item['catatan_perkembangan']?.toString() ?? '';
+                final isLast = idx == kegiatanList.length - 1;
+
+                return Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item['nama_kegiatan'] ?? '-',
+                                      style: const TextStyle(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF1E293B),
+                                      ),
+                                    ),
+                                    if ((item['nama_tujuan'] ?? '').toString().isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Tujuan: ${item['nama_tujuan']}',
+                                        style: TextStyle(fontSize: 10.5, color: Colors.grey.shade500),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: statusColor.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: statusColor.withOpacity(0.3)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      status,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: statusColor,
+                                      ),
+                                    ),
+                                    Text(
+                                      statusLabel,
+                                      style: TextStyle(fontSize: 8, color: statusColor.withOpacity(0.8)),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (catatan.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey.shade100),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(Icons.chat_bubble_outline_rounded, size: 13, color: Colors.grey.shade400),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      catatan,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey.shade600,
+                                        height: 1.4,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    if (!isLast)
+                      Divider(height: 1, color: Colors.grey.shade100, indent: 14, endIndent: 14),
+                  ],
+                );
+              }).toList(),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
   Widget _buildAnekdotCardLaporan() {
     final filtered = anekdotList.where((item) {
       final dateStr = item['tanggal']?.toString() ?? '';
@@ -1031,6 +1087,7 @@ class LaporanTab extends StatelessWidget {
       try {
         final parsedDate = DateTime.parse(dateStr);
         final month = parsedDate.month;
+
         int itemAcademicBulan = 0;
         if (semester == 1) {
           if (month >= 7 && month <= 12) itemAcademicBulan = month - 6;
@@ -1099,7 +1156,9 @@ class LaporanTab extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              item['aspek_perkembangan'] ?? '-',
+                              (item['aspek_perkembangan'] ?? '').toString().trim().isNotEmpty
+                                  ? item['aspek_perkembangan']
+                                  : 'Catatan Anekdot',
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1E293B)),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -1124,6 +1183,13 @@ class LaporanTab extends StatelessWidget {
                           style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
                         ),
                       ],
+                      if ((item['tindak_lanjut'] ?? '').toString().isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Tindak Lanjut: ${item['tindak_lanjut']}',
+                          style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                        ),
+                      ],
                     ],
                   ),
                 );
@@ -1141,6 +1207,7 @@ class LaporanTab extends StatelessWidget {
       try {
         final parsedDate = DateTime.parse(dateStr);
         final month = parsedDate.month;
+
         int itemAcademicBulan = 0;
         if (semester == 1) {
           if (month >= 7 && month <= 12) itemAcademicBulan = month - 6;
@@ -1193,7 +1260,6 @@ class LaporanTab extends StatelessWidget {
           else
             Column(
               children: filtered.map((item) {
-                final String? urlFoto = item['url_foto'];
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(12),
@@ -1202,64 +1268,53 @@ class LaporanTab extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.grey.shade100),
                   ),
-                  child: Row(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (urlFoto != null && urlFoto.isNotEmpty) ...[
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            urlFoto.startsWith('http') ? urlFoto : '${ApiService.baseUrl}/$urlFoto',
-                            width: 60,
-                            height: 60,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              width: 60,
-                              height: 60,
-                              color: Colors.grey.shade200,
-                              child: const Icon(Icons.broken_image_rounded, size: 20, color: Colors.grey),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                      ],
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    item['judul'] ?? '-',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1E293B)),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  item['tanggal'] ?? '',
-                                  style: TextStyle(fontSize: 9, color: Colors.grey.shade500),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Kategori: ${item['kategori'] ?? '-'}',
-                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _teal),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              item['deskripsi'] ?? '-',
-                              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                              maxLines: 2,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              item['judul'] ?? '-',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1E293B)),
+                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            item['tanggal'] ?? '',
+                            style: TextStyle(fontSize: 9, color: Colors.grey.shade500),
+                          ),
+                        ],
                       ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Kategori: ${item['kategori'] ?? '-'}',
+                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _teal),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        item['deskripsi'] ?? '-',
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if ((item['bahan'] ?? '').toString().trim().isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Bahan: ${item['bahan']}',
+                          style: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                        ),
+                      ],
+                      if ((item['catatan_guru'] ?? '').toString().trim().isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Catatan Guru: ${item['catatan_guru']}',
+                          style: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                        ),
+                      ],
                     ],
                   ),
                 );

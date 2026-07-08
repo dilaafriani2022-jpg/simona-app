@@ -91,15 +91,49 @@ class ProfilTab extends StatelessWidget {
                 ],
                 if ((user['alamat'] ?? '').toString().isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  _buildInfoSection('Alamat Lengkap', Icons.home_rounded, _green, [
-                    _buildInfoRow(Icons.location_on_rounded,       'Alamat Jalan', user['alamat'] ?? '-'),
-                    _buildInfoRow(Icons.grid_view_rounded,          'RT / RW',      user['rt_rw'] ?? '-'),
-                    _buildInfoRow(Icons.villa_rounded,              'Kelurahan',    user['kelurahan'] ?? '-'),
-                    _buildInfoRow(Icons.map_rounded,                'Kecamatan',    user['kecamatan'] ?? '-'),
-                    _buildInfoRow(Icons.location_city_rounded,      'Kota/Kab',     user['kota'] ?? '-'),
-                    _buildInfoRow(Icons.apartment_rounded,          'Provinsi',     user['provinsi'] ?? '-'),
-                    _buildInfoRow(Icons.local_post_office_rounded,  'Kode Pos',     user['kode_pos'] ?? '-', isLast: true),
-                  ]),
+                  Builder(
+                    builder: (context) {
+                      final String alJalan = (user['alamat'] ?? '').toString();
+                      final String rt = (user['rt_rw'] ?? '').toString();
+                      final String kel = (user['kelurahan'] ?? '').toString();
+                      final String kec = (user['kecamatan'] ?? '').toString();
+                      final String kota = (user['kota'] ?? '').toString();
+                      final String prov = (user['provinsi'] ?? '').toString();
+                      final String pos = (user['kode_pos'] ?? '').toString();
+
+                      final bool showRt = rt.isNotEmpty && rt != '-' && !alJalan.toLowerCase().contains(rt.toLowerCase());
+                      final bool showKel = kel.isNotEmpty && kel != '-' && !alJalan.toLowerCase().contains(kel.toLowerCase());
+                      final bool showKec = kec.isNotEmpty && kec != '-' && !alJalan.toLowerCase().contains(kec.toLowerCase());
+                      final bool showKota = kota.isNotEmpty && kota != '-' && !alJalan.toLowerCase().contains(kota.toLowerCase());
+                      final bool showProv = prov.isNotEmpty && prov != '-' && !alJalan.toLowerCase().contains(prov.toLowerCase());
+                      final bool showPos = pos.isNotEmpty && pos != '-' && !alJalan.toLowerCase().contains(pos.toLowerCase());
+
+                      final List<Map<String, dynamic>> items = [
+                        {'icon': Icons.location_on_rounded, 'label': 'Alamat Jalan', 'value': alJalan},
+                      ];
+                      if (showRt)   items.add({'icon': Icons.grid_view_rounded, 'label': 'RT / RW', 'value': rt});
+                      if (showKel)  items.add({'icon': Icons.villa_rounded, 'label': 'Kelurahan', 'value': kel});
+                      if (showKec)  items.add({'icon': Icons.map_rounded, 'label': 'Kecamatan', 'value': kec});
+                      if (showKota) items.add({'icon': Icons.location_city_rounded, 'label': 'Kota/Kab', 'value': kota});
+                      if (showProv) items.add({'icon': Icons.apartment_rounded, 'label': 'Provinsi', 'value': prov});
+                      if (showPos)  items.add({'icon': Icons.local_post_office_rounded, 'label': 'Kode Pos', 'value': pos});
+
+                      return _buildInfoSection(
+                        'Alamat Lengkap',
+                        Icons.home_rounded,
+                        _green,
+                        List.generate(items.length, (idx) {
+                          final item = items[idx];
+                          return _buildInfoRow(
+                            item['icon'] as IconData,
+                            item['label'] as String,
+                            item['value'] as String,
+                            isLast: idx == items.length - 1,
+                          );
+                        }),
+                      );
+                    },
+                  ),
                 ],
                 if (anakList.isNotEmpty) ...[
                   const SizedBox(height: 16),
@@ -223,7 +257,7 @@ class ProfilTab extends StatelessWidget {
         decoration: BoxDecoration(color: Colors.white.withOpacity(0.06), shape: BoxShape.circle),
       )),
       Center(child: Padding(
-        padding: const EdgeInsets.only(top: 30),
+        padding: const EdgeInsets.fromLTRB(24, 30, 24, 10),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
             width: 76, height: 76,
@@ -235,14 +269,19 @@ class ProfilTab extends StatelessWidget {
             )),
           ),
           const SizedBox(height: 10),
-          Text(nama, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
+          Text(
+            nama,
+            style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
             child: Text(
               childNames.isNotEmpty ? 'Orang Tua — $childNames' : 'Orang Tua',
-              style: const TextStyle(color: Colors.white, fontSize: 12),
+              style: const TextStyle(color: Colors.white, fontSize: 12, height: 1.3),
+              textAlign: TextAlign.center,
             ),
           ),
         ]),

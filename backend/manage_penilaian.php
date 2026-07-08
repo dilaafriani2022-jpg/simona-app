@@ -18,10 +18,10 @@ $conn->query("
         id INT AUTO_INCREMENT PRIMARY KEY,
         tipe ENUM('checklist', 'anekdot', 'karya') NOT NULL,
         id_anak INT NOT NULL,
-        id_guru INT NOT NULL, -- merujuk langsung ke users.id
+        id_guru INT NOT NULL,
         tanggal DATE NOT NULL,
-        
-        -- Khusus Checklist
+
+        -- Checklist
         id_aspek INT DEFAULT NULL,
         id_tujuan INT DEFAULT NULL,
         id_kegiatan INT DEFAULT NULL,
@@ -30,30 +30,30 @@ $conn->query("
         konteks TEXT DEFAULT NULL,
         hasil TEXT DEFAULT NULL,
         kejadian TEXT DEFAULT NULL,
-        
-        -- Khusus Anekdot
+
+        -- Anekdot
         waktu TIME DEFAULT NULL,
         lokasi VARCHAR(255) DEFAULT NULL,
         aspek_perkembangan VARCHAR(100) DEFAULT NULL,
         peristiwa TEXT DEFAULT NULL,
         interpretasi TEXT DEFAULT NULL,
         tindak_lanjut TEXT DEFAULT NULL,
-        
-        -- Khusus Karya
-        waktu_kegiatan TIME DEFAULT NULL,
+
+        -- Karya
+        waktu_kegiatan VARCHAR(20) DEFAULT NULL,
         kategori VARCHAR(50) DEFAULT NULL,
         judul VARCHAR(255) DEFAULT NULL,
         deskripsi TEXT DEFAULT NULL,
         bahan TEXT DEFAULT NULL,
         url_foto VARCHAR(255) DEFAULT NULL,
         catatan_guru TEXT DEFAULT NULL,
-        
-        -- Metadata Bersama
+
+        -- Metadata
         semester TINYINT DEFAULT 1,
         minggu_ke TINYINT DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        
+
         FOREIGN KEY (id_anak) REFERENCES anak(id) ON DELETE CASCADE,
         FOREIGN KEY (id_guru) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (id_aspek) REFERENCES aspek_penilaian(id) ON DELETE SET NULL,
@@ -61,6 +61,7 @@ $conn->query("
         FOREIGN KEY (id_kegiatan) REFERENCES kegiatan_pembelajaran(id) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ");
+
 
 $method = $_SERVER['REQUEST_METHOD'];
 

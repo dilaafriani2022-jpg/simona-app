@@ -41,6 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                     k.tanggal,
                     k.kategori,
                     k.url_foto,
+                    k.bahan,
+                    k.catatan_guru,
                     u.name as nama_guru
                 FROM penilaian k
                 LEFT JOIN users u ON k.id_guru = u.id

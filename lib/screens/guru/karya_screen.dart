@@ -51,8 +51,9 @@ const _kRed = Color(0xFFDC2626);
 class KaryaScreen extends StatefulWidget {
   final int? idGuru;
   final int? idKelas;
+  final int? idAnak;
   final bool isReadOnly;
-  const KaryaScreen({super.key, this.idGuru, this.idKelas, this.isReadOnly = false});
+  const KaryaScreen({super.key, this.idGuru, this.idKelas, this.idAnak, this.isReadOnly = false});
 
   @override
   State<KaryaScreen> createState() => _KaryaScreenState();
@@ -88,7 +89,11 @@ class _KaryaScreenState extends State<KaryaScreen> {
     super.dispose();
   }
 
-  void _loadKarya() => _karyaFuture = _getKarya();
+  void _loadKarya() {
+    setState(() {
+      _karyaFuture = _getKarya();
+    });
+  }
 
   // ── Data Fetching ──────────────────────────────────────────
 
@@ -106,8 +111,9 @@ class _KaryaScreenState extends State<KaryaScreen> {
 
   Future<List<dynamic>> _getKarya() async {
     try {
+      final idAnakParam = widget.idAnak != null ? '&id_anak=${widget.idAnak}' : '';
       final res = await ApiService.fetch(
-          'manage_karya.php?id_guru=${widget.idGuru ?? 2}');
+          'manage_karya.php?id_guru=${widget.idGuru ?? 2}$idAnakParam');
       if (res['status'] == 'success') return res['data'] ?? [];
       return [];
     } catch (e) {
@@ -180,7 +186,7 @@ class _KaryaScreenState extends State<KaryaScreen> {
         ...payload,
       });
       if (res['status'] == 'success') {
-        setState(_loadKarya);
+        _loadKarya();
         _snackOk('Karya berhasil disimpan');
       } else {
         _snackErr(res['message'] ?? 'Gagal menyimpan');
@@ -296,7 +302,7 @@ class _KaryaScreenState extends State<KaryaScreen> {
       final res = await ApiService.post(
           'manage_karya.php', {'action': 'delete', 'id': id});
       if (res['status'] == 'success') {
-        setState(_loadKarya);
+        _loadKarya();
         _snackOk('Karya dihapus');
       } else {
         _snackErr(res['message'] ?? 'Gagal menghapus');
@@ -304,6 +310,332 @@ class _KaryaScreenState extends State<KaryaScreen> {
     } catch (e) {
       _snackErr('Error: $e');
     }
+  }
+
+  Future<void> _updateKarya(int id, Map<String, dynamic> payload) async {
+    try {
+      final res = await ApiService.post('manage_karya.php', {
+        'action': 'update',
+        'id': id,
+        ...payload,
+      });
+      if (res['status'] == 'success') {
+        _loadKarya();
+        _snackOk('Karya berhasil diperbarui');
+      } else {
+        _snackErr(res['message'] ?? 'Gagal memperbarui');
+      }
+    } catch (e) {
+      _snackErr('Error: $e');
+    }
+  }
+
+  void _showEditFormSheet(Map<String, dynamic> item) {
+    final id = int.tryParse(item['id']?.toString() ?? '0') ?? 0;
+    if (id == 0) return;
+
+    String selectedKategori = item['kategori'] ?? 'Lainnya';
+    String selectedWaktu = item['waktu_kegiatan'] ?? 'Pagi';
+    DateTime selectedTgl = DateTime.tryParse(item['tanggal']?.toString() ?? '') ?? DateTime.now();
+    bool isSaving = false;
+
+    final judulCtrl = TextEditingController(text: item['judul'] ?? '');
+    final deskCtrl = TextEditingController(text: item['deskripsi'] ?? '');
+    final bahanCtrl = TextEditingController(text: item['bahan'] ?? '');
+    final catatanCtrl = TextEditingController(text: item['catatan_guru'] ?? '');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setBS) {
+          final mq = MediaQuery.of(ctx);
+          return Container(
+            height: mq.size.height * 0.92,
+            decoration: const BoxDecoration(
+              color: _kBg,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            child: Column(children: [
+              // Header sheet
+              Container(
+                decoration: BoxDecoration(
+                  color: _kSurface,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))
+                  ],
+                ),
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+                child: Column(children: [
+                  Center(
+                    child: Container(
+                      width: 40, height: 4,
+                      margin: const EdgeInsets.only(bottom: 14),
+                      decoration: BoxDecoration(
+                        color: _kPrimary.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [_kPrimary, _kPrimary.withOpacity(0.75)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(color: _kPrimary.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))
+                      ],
+                    ),
+                    child: Row(children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.palette_rounded, color: Colors.white, size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Edit Karya Anak',
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                            Text('Perbarui detail hasil karya anak',
+                                style: TextStyle(color: Colors.white70, fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(ctx),
+                        child: Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(9),
+                          ),
+                          child: const Icon(Icons.close_rounded, color: Colors.white, size: 16),
+                        ),
+                      ),
+                    ]),
+                  ),
+                ]),
+              ),
+
+              // Body
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(16, 14, 16, mq.viewInsets.bottom + 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: _kSurface,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: _kBorder),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2))
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Nama Anak (Disabled)
+                        _fLabel('Nama Anak'),
+                        const SizedBox(height: 6),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: _kBorder),
+                          ),
+                          child: Text(
+                            item['nama_anak'] ?? 'Anak',
+                            style: const TextStyle(fontSize: 13, color: _kTextSub),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Kategori Karya Dropdown
+                        _fLabel('Kategori Karya *'),
+                        const SizedBox(height: 6),
+                        _fDrop<String>(
+                          hint: 'Pilih kategori...',
+                          value: selectedKategori,
+                          icon: Icons.category_rounded,
+                          items: kKategoriList
+                              .map((k) => DropdownMenuItem<String>(
+                                    value: k.key,
+                                    child: Text('${k.emoji} ${k.label}', style: const TextStyle(fontSize: 13)),
+                                  ))
+                              .toList(),
+                          onChanged: (v) => setBS(() => selectedKategori = v ?? 'Lainnya'),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Tanggal & Waktu
+                        Row(children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _fLabel('Tanggal *'),
+                                const SizedBox(height: 6),
+                                GestureDetector(
+                                  onTap: () async {
+                                    final picked = await showDatePicker(
+                                      context: ctx,
+                                      initialDate: selectedTgl,
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime.now(),
+                                    );
+                                    if (picked != null) setBS(() => selectedTgl = picked);
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFAFAF9),
+                                      border: Border.all(color: _kBorder, width: 1.5),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Row(children: [
+                                      const Icon(Icons.calendar_today_rounded, size: 15, color: _kTextSub),
+                                      const SizedBox(width: 8),
+                                      Text(DateFormat('dd MMM yyyy', 'id').format(selectedTgl),
+                                          style: const TextStyle(fontSize: 13, color: _kTextMain)),
+                                    ]),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _fLabel('Waktu'),
+                                const SizedBox(height: 6),
+                                _fDrop<String>(
+                                  hint: 'Waktu',
+                                  value: selectedWaktu,
+                                  icon: Icons.access_time_rounded,
+                                  items: kWaktuList
+                                      .map((w) => DropdownMenuItem<String>(
+                                            value: w,
+                                            child: Text(w, style: const TextStyle(fontSize: 13)),
+                                          ))
+                                      .toList(),
+                                  onChanged: (v) => setBS(() => selectedWaktu = v ?? 'Pagi'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ]),
+                        const SizedBox(height: 14),
+
+                        // Judul
+                        _fLabel('Judul / Nama Karya *'),
+                        const SizedBox(height: 6),
+                        _fInput(ctrl: judulCtrl, hint: 'Contoh: Rumahku di Tepi Sawah'),
+                        const SizedBox(height: 14),
+
+                        // Deskripsi
+                        _fLabel('Deskripsi Karya'),
+                        const SizedBox(height: 6),
+                        _fArea(ctrl: deskCtrl, hint: 'Contoh: menggambar rumah...'),
+                        const SizedBox(height: 14),
+
+                        // Bahan
+                        _fLabel('Bahan / Media'),
+                        const SizedBox(height: 6),
+                        _fInput(ctrl: bahanCtrl, hint: 'Contoh: Krayon...'),
+                        const SizedBox(height: 14),
+
+                        // Catatan Guru
+                        _fLabel('Catatan Guru'),
+                        const SizedBox(height: 6),
+                        _fArea(ctrl: catatanCtrl, hint: 'Catatan perkembangan...'),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // Footer
+              Container(
+                padding: EdgeInsets.fromLTRB(16, 12, 16, mq.viewInsets.bottom + 12),
+                decoration: BoxDecoration(
+                  color: _kSurface,
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, -4))
+                  ],
+                ),
+                child: Row(children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: _kPrimary.withOpacity(0.4)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                      ),
+                      child: const Text('Batal', style: TextStyle(color: _kPrimary, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _kGreen,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        elevation: 0,
+                      ),
+                      onPressed: isSaving
+                          ? null
+                          : () async {
+                              if (judulCtrl.text.trim().isEmpty) {
+                                _snackErr('Judul karya wajib diisi');
+                                return;
+                              }
+                              setBS(() => isSaving = true);
+                              await _updateKarya(id, {
+                                'judul': judulCtrl.text.trim(),
+                                'deskripsi': deskCtrl.text.trim(),
+                                'kategori': selectedKategori,
+                                'bahan': bahanCtrl.text.trim(),
+                                'catatan_guru': catatanCtrl.text.trim(),
+                                'waktu_kegiatan': selectedWaktu,
+                                'tanggal': DateFormat('yyyy-MM-dd').format(selectedTgl),
+                              });
+                              setBS(() => isSaving = false);
+                              if (mounted) Navigator.pop(ctx);
+                            },
+                      child: isSaving
+                          ? const SizedBox(
+                              height: 20, width: 20,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Text('Simpan Perubahan',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                    ),
+                  ),
+                ]),
+              ),
+            ]),
+          );
+        },
+      ),
+    );
   }
 
   // ── Snackbar Helpers ───────────────────────────────────────
@@ -354,7 +686,7 @@ class _KaryaScreenState extends State<KaryaScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => setState(_loadKarya),
+            onPressed: _loadKarya,
           ),
         ],
       ),
@@ -421,7 +753,7 @@ class _KaryaScreenState extends State<KaryaScreen> {
                       ? _buildError()
                       : RefreshIndicator(
                           color: _kPrimary,
-                          onRefresh: () async => setState(_loadKarya),
+                          onRefresh: () async => _loadKarya(),
                           child: filtered.isEmpty
                               ? _buildEmpty()
                               : ListView.builder(
@@ -686,22 +1018,40 @@ class _KaryaScreenState extends State<KaryaScreen> {
                 ]),
               ]),
             ),
-            // Tombol hapus
+            // Tombol Edit & Hapus
             if (!widget.isReadOnly)
-              GestureDetector(
-                onTap: () => _deleteKarya(
-                  int.parse(item['id'].toString()),
-                  nama,
-                ),
-                child: Container(
-                  padding: const EdgeInsets.all(7),
-                  decoration: BoxDecoration(
-                    color: _kRed.withOpacity(0.07),
-                    borderRadius: BorderRadius.circular(10),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    onTap: () => _showEditFormSheet(item),
+                    child: Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: _kPrimary.withOpacity(0.07),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.edit_outlined,
+                          size: 17, color: _kPrimary),
+                    ),
                   ),
-                  child: const Icon(Icons.delete_outline_rounded,
-                      size: 17, color: _kRed),
-                ),
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: () => _deleteKarya(
+                      int.parse(item['id'].toString()),
+                      nama,
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: _kRed.withOpacity(0.07),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.delete_outline_rounded,
+                          size: 17, color: _kRed),
+                    ),
+                  ),
+                ],
               ),
           ]),
           const SizedBox(height: 12),
@@ -1275,7 +1625,7 @@ class _KaryaScreenState extends State<KaryaScreen> {
                   color: Colors.grey.shade500, fontSize: 14)),
           const SizedBox(height: 8),
           TextButton.icon(
-            onPressed: () => setState(_loadKarya),
+            onPressed: _loadKarya,
             icon: const Icon(Icons.refresh_rounded),
             label: const Text('Coba Lagi'),
             style: TextButton.styleFrom(foregroundColor: _kPrimary),
@@ -1456,7 +1806,7 @@ class _KaryaScreenState extends State<KaryaScreen> {
                             context: ctx,
                             initialDate: selectedTgl,
                             firstDate: DateTime(2020),
-                            lastDate: DateTime.now(),
+                            lastDate: DateTime(2030),
                             builder: (c, child) => Theme(
                               data: Theme.of(c).copyWith(
                                 colorScheme:
@@ -1568,8 +1918,9 @@ class _KaryaScreenState extends State<KaryaScreen> {
           }
 
           // ── Sheet Layout ────────────────────────────────────
+          final mq = MediaQuery.of(ctx);
           return Container(
-            height: MediaQuery.of(ctx).size.height * 0.92,
+            height: mq.size.height * 0.92,
             decoration: const BoxDecoration(
               color: _kBg,
               borderRadius:
@@ -1701,7 +2052,7 @@ class _KaryaScreenState extends State<KaryaScreen> {
               // Body step
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                  padding: EdgeInsets.fromLTRB(16, 14, 16, mq.viewInsets.bottom + 16),
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(

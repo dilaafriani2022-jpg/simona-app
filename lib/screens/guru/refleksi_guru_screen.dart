@@ -34,6 +34,7 @@ class _RefleksiGuruScreenState extends State<RefleksiGuruScreen>
   List<dynamic> _refleksiOrtuList = [];
   List<dynamic> _kelasList        = [];
   int? _selectedKelasId;
+  Map<int, List<dynamic>> _prosemCache = {};
   bool _isLoading = true;
 
   @override
@@ -95,10 +96,58 @@ class _RefleksiGuruScreenState extends State<RefleksiGuruScreen>
             _loadRefleksiOrtu();
           }
         });
+        if (_selectedKelasId != null) {
+          _ensureProsemLoaded(_selectedKelasId!);
+        }
       }
     } catch (e) {
       debugPrint('Error: $e');
     }
+  }
+
+  Future<void> _ensureProsemLoaded(int classId) async {
+    if (_prosemCache.containsKey(classId)) return;
+    try {
+      final res1 = await ApiService.fetch('manage_prosem.php?id_kelas=$classId&semester=1');
+      final res2 = await ApiService.fetch('manage_prosem.php?id_kelas=$classId&semester=2');
+      List<dynamic> combined = [];
+      if (res1['status'] == 'success' && res1['data'] != null) {
+        combined.addAll(res1['data']);
+      }
+      if (res2['status'] == 'success' && res2['data'] != null) {
+        combined.addAll(res2['data']);
+      }
+      _prosemCache[classId] = combined;
+    } catch (e) {
+      debugPrint("Error loading prosem for class $classId: $e");
+    }
+  }
+
+  dynamic _findProsemWeekByDateAndClass(int classId, String dateStr) {
+    final list = _prosemCache[classId];
+    if (list == null || list.isEmpty || dateStr.isEmpty) return null;
+    try {
+      final date = DateTime.parse(dateStr);
+      for (final prosem in list) {
+        final startStr = prosem['tanggal_mulai']?.toString() ?? '';
+        final endStr = prosem['tanggal_selesai']?.toString() ?? '';
+        if (startStr.isNotEmpty && endStr.isNotEmpty) {
+          final start = DateTime.parse(startStr);
+          final end = DateTime.parse(endStr);
+          final compareDate = DateTime(date.year, date.month, date.day);
+          final compareStart = DateTime(start.year, start.month, start.day);
+          final compareEnd = DateTime(end.year, end.month, end.day);
+          
+          if ((compareDate.isAfter(compareStart) || compareDate.isAtSameMomentAs(compareStart)) &&
+              (compareDate.isBefore(compareEnd) || compareDate.isAtSameMomentAs(compareEnd))) {
+            return prosem;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error finding prosem week: $e");
+    }
+    return null;
   }
 
   void _showSnack(String message, {bool isError = false}) {
@@ -166,6 +215,7 @@ class _RefleksiGuruScreenState extends State<RefleksiGuruScreen>
         builder: (ctx, setStateDialog) {
           Future<void> fetchAnak(int classId) async {
             setStateDialog(() => isAnakLoading = true);
+            _ensureProsemLoaded(classId);
             try {
               final res = await ApiService.fetch('manage_anak.php?id_kelas=$classId');
               if (res['status'] == 'success') {
@@ -585,14 +635,24 @@ class _RefleksiGuruScreenState extends State<RefleksiGuruScreen>
                   context: ctx,
                   initialDate: DateTime.tryParse(tanggal) ?? DateTime.now(),
                   firstDate: DateTime(2024),
-                  lastDate: DateTime.now().add(const Duration(days: 1)),
+                  lastDate: DateTime(2030),
                   builder: (c, child) => Theme(
                     data: Theme.of(c).copyWith(colorScheme: const ColorScheme.light(primary: _primary)),
                     child: child!,
                   ),
                 );
                 if (picked != null) {
-                  setStateDialog(() => onTanggalChanged(DateFormat('yyyy-MM-dd').format(picked)));
+                  final dateFormatted = DateFormat('yyyy-MM-dd').format(picked);
+                  final matched = _findProsemWeekByDateAndClass(selectedKelas ?? 0, dateFormatted);
+                  setStateDialog(() {
+                    onTanggalChanged(dateFormatted);
+                    if (matched != null) {
+                      final newSem = int.tryParse(matched['semester']?.toString() ?? '1') ?? 1;
+                      final newWeek = int.tryParse(matched['minggu_ke']?.toString() ?? '1') ?? 1;
+                      onSemesterChanged(newSem);
+                      onMingguChanged(newWeek);
+                    }
+                  });
                 }
               },
               child: Container(
@@ -1048,10 +1108,14 @@ class _RefleksiGuruScreenState extends State<RefleksiGuruScreen>
           }).toList(),
           onChanged: (val) {
             if (val != null) {
+              final parsedId = int.tryParse(val);
               setState(() {
-                _selectedKelasId = int.tryParse(val);
+                _selectedKelasId = parsedId;
               });
               _loadRefleksiOrtu();
+              if (parsedId != null) {
+                _ensureProsemLoaded(parsedId);
+              }
             }
           },
         ),

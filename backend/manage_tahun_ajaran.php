@@ -11,7 +11,7 @@ require_once 'log_activity.php';
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method == 'GET') {
-    $sql = "SELECT * FROM tahun_ajaran";
+    $sql = "SELECT id, tahun, status, tanggal_mulai_semester_1, tanggal_akhir_semester_1, tanggal_mulai_semester_2, tanggal_akhir_semester_2 FROM tahun_ajaran";
     $result = $conn->query($sql);
     $data = [];
     while($row = $result->fetch_assoc()) {
@@ -43,11 +43,23 @@ elseif ($method == 'POST') {
         $id     = intval($data->id);
         $tahun  = $conn->real_escape_string($data->tahun);
         $status = $conn->real_escape_string($data->status);
+        // Tanggal semester (opsional)
+        $tgl_m1 = isset($data->tanggal_mulai_semester_1) && $data->tanggal_mulai_semester_1 ? "'" . $conn->real_escape_string($data->tanggal_mulai_semester_1) . "'" : 'NULL';
+        $tgl_a1 = isset($data->tanggal_akhir_semester_1) && $data->tanggal_akhir_semester_1 ? "'" . $conn->real_escape_string($data->tanggal_akhir_semester_1) . "'" : 'NULL';
+        $tgl_m2 = isset($data->tanggal_mulai_semester_2) && $data->tanggal_mulai_semester_2 ? "'" . $conn->real_escape_string($data->tanggal_mulai_semester_2) . "'" : 'NULL';
+        $tgl_a2 = isset($data->tanggal_akhir_semester_2) && $data->tanggal_akhir_semester_2 ? "'" . $conn->real_escape_string($data->tanggal_akhir_semester_2) . "'" : 'NULL';
         // Jika diubah ke aktif, nonaktifkan yang lain terlebih dahulu
         if ($status === 'aktif') {
             $conn->query("UPDATE tahun_ajaran SET status = 'nonaktif' WHERE id != $id");
         }
-        $sql = "UPDATE tahun_ajaran SET tahun = '$tahun', status = '$status' WHERE id = $id";
+        $sql = "UPDATE tahun_ajaran SET
+            tahun = '$tahun',
+            status = '$status',
+            tanggal_mulai_semester_1 = $tgl_m1,
+            tanggal_akhir_semester_1 = $tgl_a1,
+            tanggal_mulai_semester_2 = $tgl_m2,
+            tanggal_akhir_semester_2 = $tgl_a2
+            WHERE id = $id";
         if ($conn->query($sql)) {
             logActivity(getPdo(), "Tahun ajaran diperbarui", "Tahun ajaran '{$tahun}' ({$status}) berhasil diperbarui", "tahun", "edit");
             echo json_encode(["status" => "success", "message" => "Tahun ajaran berhasil diperbarui"]);

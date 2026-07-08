@@ -159,11 +159,14 @@ class HomeTab extends StatelessWidget {
             ]),
             const SizedBox(height: 12),
             if (selectedAnak != null)
-              Row(children: [
-                _heroBadge(Icons.child_care_rounded, selectedAnak!['nama_anak'] ?? ''),
-                const SizedBox(width: 8),
-                _heroBadge(Icons.meeting_room_rounded, selectedAnak!['nama_kelas'] ?? 'Kelompok'),
-              ]),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  _heroBadge(Icons.child_care_rounded, selectedAnak!['nama_anak'] ?? ''),
+                  _heroBadge(Icons.meeting_room_rounded, selectedAnak!['nama_kelas'] ?? 'Kelompok'),
+                ],
+              ),
           ]),
         ),
       ]),
@@ -220,11 +223,14 @@ class HomeTab extends StatelessWidget {
             Text(selectedAnak!['nama_anak'] ?? '',
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF1E293B))),
             const SizedBox(height: 4),
-            Row(children: [
-              _infoPill(Icons.fingerprint_rounded, 'NISN: ${selectedAnak!['nisn'] ?? ''}', _orange700),
-              const SizedBox(width: 6),
-              _infoPill(Icons.meeting_room_rounded, selectedAnak!['nama_kelas'] ?? '', _navy),
-            ]),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                _infoPill(Icons.fingerprint_rounded, 'NISN: ${selectedAnak!['nisn'] ?? ''}', _orange700),
+                _infoPill(Icons.meeting_room_rounded, selectedAnak!['nama_kelas'] ?? '', _navy),
+              ],
+            ),
             const SizedBox(height: 6),
             if (hasMultiple)
               Text('(Ketuk untuk mengganti anak)',
@@ -357,24 +363,38 @@ class HomeTab extends StatelessWidget {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Row(children: [
-                  SizedBox(width: 130,
-                    child: Text(aspek['nama_aspek'] ?? '-',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF334155)))),
-                  Expanded(child: ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      backgroundColor: color.withOpacity(0.1),
-                      valueColor: AlwaysStoppedAnimation(color),
-                      minHeight: 8,
+                  Expanded(
+                    flex: 5,
+                    child: Text(
+                      aspek['nama_aspek'] ?? '-',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF334155)),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  )),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 4,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        backgroundColor: color.withOpacity(0.1),
+                        valueColor: AlwaysStoppedAnimation(color),
+                        minHeight: 8,
+                      ),
+                    ),
+                  ),
                   const SizedBox(width: 10),
                   Container(
-                    width: 40, padding: const EdgeInsets.symmetric(vertical: 3),
+                    width: 40,
+                    padding: const EdgeInsets.symmetric(vertical: 3),
                     decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-                    child: Text(status,
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color), textAlign: TextAlign.center),
+                    child: Text(
+                      status,
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ]),
               );
@@ -399,46 +419,177 @@ class HomeTab extends StatelessWidget {
     Text(label, style: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
   ]);
 
-  Widget _buildMenuGrid() {
-    final menus = [
-      _MenuData('Perkembangan',    Icons.auto_graph_rounded,    _green,  () => onMenuTap(1)),
-      _MenuData('Kehadiran',       Icons.calendar_month_rounded,_blue,   () => onMenuTap(2)),
-      _MenuData('Jadwal',          Icons.schedule_rounded,      _orange700, () => onMenuTap(3)),
-      _MenuData('Laporan Anak',    Icons.description_rounded,   _purple, () => onMenuTap(4)),
-      _MenuData('Ekstrakurikuler', Icons.sports_rounded,        _teal,   onEkstraTap),
-      _MenuData('Refleksi',        Icons.psychology_rounded,    _amber,  onRefleksiTap),
-    ];
-
-    return GridView.count(
-      crossAxisCount: 3,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12, crossAxisSpacing: 12,
-      childAspectRatio: 0.9,
-      children: menus.map((m) => GestureDetector(
-        onTap: m.onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            color: _surface, borderRadius: BorderRadius.circular(18),
-            boxShadow: [BoxShadow(color: m.color.withOpacity(0.12), blurRadius: 12, offset: const Offset(0, 4))],
-          ),
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Container(
-              width: 46, height: 46,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [m.color, m.color.withOpacity(0.75)],
-                    begin: Alignment.topLeft, end: Alignment.bottomRight),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(m.icon, color: Colors.white, size: 24),
+  Widget _buildFeaturedMenu({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        decoration: BoxDecoration(
+          color: _surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withOpacity(0.12), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.08),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
             ),
-            const SizedBox(height: 9),
-            Text(m.label,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.grey.shade800),
-                textAlign: TextAlign.center),
-          ]),
+          ],
         ),
-      )).toList(),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [color, color.withOpacity(0.75)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(icon, color: Colors.white, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Pantau laporan bulanan dan rekap semester anak',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: color.withOpacity(0.6),
+              size: 14,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubMenuCard({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: _surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: color.withOpacity(0.08), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 16),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  color: Color(0xFF334155),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuGrid() {
+    return Column(
+      children: [
+        _buildFeaturedMenu(
+          label: 'Laporan Anak',
+          icon: Icons.description_rounded,
+          color: _purple,
+          onTap: () => onMenuTap(3),
+        ),
+        const SizedBox(height: 12),
+        GridView.count(
+          padding: EdgeInsets.zero,
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 2.2,
+          children: [
+            _buildSubMenuCard(
+              label: 'Perkembangan',
+              icon: Icons.auto_graph_rounded,
+              color: _green,
+              onTap: () => onMenuTap(1),
+            ),
+            _buildSubMenuCard(
+              label: 'Kehadiran',
+              icon: Icons.calendar_month_rounded,
+              color: _blue,
+              onTap: () => onMenuTap(2),
+            ),
+            _buildSubMenuCard(
+              label: 'Ekstrakurikuler',
+              icon: Icons.sports_rounded,
+              color: _teal,
+              onTap: onEkstraTap,
+            ),
+            _buildSubMenuCard(
+              label: 'Refleksi',
+              icon: Icons.psychology_rounded,
+              color: _amber,
+              onTap: onRefleksiTap,
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -464,8 +615,12 @@ class HomeTab extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(item['aspek_perkembangan'] ?? '-',
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF1E293B))),
+                  Text(
+                    (item['aspek_perkembangan'] ?? '').toString().trim().isNotEmpty
+                        ? item['aspek_perkembangan']
+                        : 'Catatan Anekdot',
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF1E293B)),
+                  ),
                   const SizedBox(height: 3),
                   Text(item['peristiwa'] ?? '-',
                       style: TextStyle(fontSize: 11, color: Colors.grey.shade500),

@@ -455,9 +455,10 @@ class _ManageAnakScreenState extends State<ManageAnakScreen> {
           }
 
           final accent = stepAccent[currentStep];
+          final mq = MediaQuery.of(ctx);
 
           return Container(
-            height: MediaQuery.of(ctx).size.height * 0.93,
+            height: mq.size.height * 0.93,
             decoration: const BoxDecoration(
               color: _cream,
               borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
@@ -533,9 +534,8 @@ class _ManageAnakScreenState extends State<ManageAnakScreen> {
                   const SizedBox(height: 14),
                 ])),
 
-              // ── Scrollable content ─────────────────────────────────
               Expanded(child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                padding: EdgeInsets.fromLTRB(16, 16, 16, mq.viewInsets.bottom + 16),
                 child: Container(
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
@@ -839,11 +839,14 @@ class _ManageAnakScreenState extends State<ManageAnakScreen> {
                 Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: _textMain),
                   maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 5),
-                Row(children: [
-                  _miniChip(item['nisn'] ?? '-', _sage, Icons.fingerprint_rounded),
-                  const SizedBox(width: 6),
-                  _miniChip(item['nama_kelas'] ?? '-', _sky, Icons.class_rounded),
-                ]),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    _miniChip(item['nisn'] ?? '-', _sage, Icons.fingerprint_rounded),
+                    _miniChip(item['nama_kelas'] ?? '-', _sky, Icons.class_rounded),
+                  ],
+                ),
                 const SizedBox(height: 5),
                 Row(children: [
                   Icon(hasParent ? Icons.family_restroom_rounded : Icons.person_off_outlined,

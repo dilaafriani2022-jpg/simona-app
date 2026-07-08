@@ -22,13 +22,11 @@ class ApiService {
   // ANDROID EMULATOR (10.0.2.2 = localhost PC dari emulator)
   static const String androidUrl = "http://10.0.2.2/monak/backend";
 
-  // HP FISIK - gunakan IP WiFi PC Anda di jaringan lokal
-  // Pastikan HP dan PC terhubung ke WiFi yang sama
-  static const String physicalDeviceUrl = "http://172.16.71.194/monak/backend";
+  static const String physicalDeviceUrl = "http://172.16.70.15/monak/backend";
 
   // HOSTING
   static const String onlineUrl =
-      "https://domain-anda.com/monak/backend";
+      "http://202.10.44.63/monak/backend";
 
   static String get baseUrl {
 
@@ -99,7 +97,7 @@ class ApiService {
         "username": username,
         "password": password,
       }),
-    );
+    ).timeout(const Duration(seconds: 12));
 
     print("STATUS CODE : ${response.statusCode}");
     print("BODY : ${response.body}");
@@ -134,7 +132,7 @@ class ApiService {
 
       final response = await http.get(
         Uri.parse("${ApiService.baseUrl}/get_users.php"),
-      );
+      ).timeout(const Duration(seconds: 12));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -212,7 +210,7 @@ class ApiService {
         },
 
         body: jsonEncode(userData),
-      );
+      ).timeout(const Duration(seconds: 12));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -253,7 +251,7 @@ class ApiService {
         body: jsonEncode({
           "id": id
         }),
-      );
+      ).timeout(const Duration(seconds: 12));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -278,13 +276,14 @@ class ApiService {
   // DASHBOARD
   // =====================================================
 
-  static Future<Map<String, dynamic>> getDashboardStats() async {
-
+  static Future<Map<String, dynamic>> getDashboardStats({int? semester}) async {
     try {
+      String url = "${ApiService.baseUrl}/get_dashboard_stats.php";
+      if (semester != null) {
+        url += "?semester=$semester";
+      }
 
-      final response = await http.get(
-        Uri.parse("${ApiService.baseUrl}/get_dashboard_stats.php"),
-      );
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 12));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -452,7 +451,7 @@ class ApiService {
 
       final response = await http.get(
         Uri.parse(url),
-      );
+      ).timeout(const Duration(seconds: 12));
 
       print("📥 Status: ${response.statusCode}");
       print("📄 Response: ${response.body}");
@@ -514,7 +513,7 @@ class ApiService {
         },
 
         body: jsonEncode(dataWithUser),
-      );
+      ).timeout(const Duration(seconds: 12));
 
       print("📥 Status: ${response.statusCode}");
       print("📄 Response: ${response.body}");
@@ -691,16 +690,18 @@ static Future<Map<String, dynamic>> addOrtu({
     int anakId, {
     int? bulan,
     int? tahun,
+    int? semester,
   }) async {
     try {
       int bulanSekarang = bulan ?? DateTime.now().month;
       int tahunSekarang = tahun ?? DateTime.now().year;
 
-      final response = await http.get(
-        Uri.parse(
-          "${ApiService.baseUrl}/get_kehadiran_ortu.php?id_anak=$anakId&bulan=$bulanSekarang&tahun=$tahunSekarang",
-        ),
-      );
+      String url = "${ApiService.baseUrl}/get_kehadiran_ortu.php?id_anak=$anakId&bulan=$bulanSekarang&tahun=$tahunSekarang";
+      if (semester != null) {
+        url += "&semester=$semester";
+      }
+
+      final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -881,31 +882,7 @@ static Future<Map<String, dynamic>> addOrtu({
     }
   }
 
-  // ── Laporan anak (rekap bulanan per aspek) ─────────────────────────────
-  static Future<Map<String, dynamic>> getLaporanAnak(int anakId, {int semester = 1}) async {
-    try {
-      final response = await http.get(
-        Uri.parse('${ApiService.baseUrl}/get_penilaian_ortu.php?id_anak=$anakId&type=rekap_bulanan&semester=$semester'),
-      );
-      if (response.statusCode == 200) return jsonDecode(response.body);
-      return {'status': 'error', 'message': 'Server Error'};
-    } catch (e) {
-      return {'status': 'error', 'message': 'Connection Error: $e'};
-    }
-  }
 
-  // ── Jadwal kelas (untuk ortu lihat jadwal anak) ────────────────────────────
-  static Future<Map<String, dynamic>> getJadwalKelas(int idKelas) async {
-    try {
-      final response = await http.get(
-        Uri.parse('${ApiService.baseUrl}/manage_jadwal.php?id_kelas=$idKelas'),
-      );
-      if (response.statusCode == 200) return jsonDecode(response.body);
-      return {'status': 'error', 'message': 'Server Error'};
-    } catch (e) {
-      return {'status': 'error', 'message': 'Connection Error: $e'};
-    }
-  }
 
   /// Create / set password for an existing guru / orang_tua / kepsek user.
   static Future<Map<String, dynamic>> createSmartUser({
@@ -929,72 +906,41 @@ static Future<Map<String, dynamic>> addOrtu({
       return {'status': 'error', 'message': 'Connection Error: $e'};
     }
   }
-
-  // =====================================================
-  // LAPORAN RAPORT SIAP
-  // =====================================================
-
-  /// Guru mengecek status laporan siap raport untuk semester ini
-  static Future<Map<String, dynamic>> getLaporanStatus({
-    required int idGuru,
-    int semester = 1,
-  }) async {
-    try {
-      final uri = Uri.parse('$baseUrl/laporan_raport.php?id_guru=$idGuru&semester=$semester');
-      final response = await http.get(uri);
-      if (response.statusCode == 200) return jsonDecode(response.body);
-      return {'status': 'error', 'message': 'Server Error ${response.statusCode}'};
-    } catch (e) {
-      return {'status': 'error', 'message': 'Connection Error: $e'};
-    }
-  }
-
-  /// Guru mengirim laporan siap raport ke kepsek
-  static Future<Map<String, dynamic>> kirimLaporanRaport({
-    required int idGuru,
-    int semester = 1,
-    String catatan = '',
-  }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/laporan_raport.php'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'id_guru': idGuru, 'semester': semester, 'catatan': catatan}),
-      );
-      if (response.statusCode == 200) return jsonDecode(response.body);
-      return {'status': 'error', 'message': 'Server Error ${response.statusCode}'};
-    } catch (e) {
-      return {'status': 'error', 'message': 'Connection Error: $e'};
-    }
-  }
-
-  /// Guru membatalkan laporan siap raport
-  static Future<Map<String, dynamic>> batalkanLaporanRaport({
-    required int idGuru,
-    int semester = 1,
-  }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/laporan_raport.php'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'id_guru': idGuru, 'semester': semester, 'batalkan': true}),
-      );
-      if (response.statusCode == 200) return jsonDecode(response.body);
-      return {'status': 'error', 'message': 'Server Error ${response.statusCode}'};
-    } catch (e) {
-      return {'status': 'error', 'message': 'Connection Error: $e'};
-    }
-  }
-
-  /// Kepsek melihat semua laporan siap raport dari guru
-  static Future<Map<String, dynamic>> getLaporanKepsek({int semester = 1}) async {
-    try {
-      final uri = Uri.parse('$baseUrl/laporan_raport.php?kepsek=1&semester=$semester');
-      final response = await http.get(uri);
-      if (response.statusCode == 200) return jsonDecode(response.body);
-      return {'status': 'error', 'message': 'Server Error ${response.statusCode}'};
-    } catch (e) {
-      return {'status': 'error', 'message': 'Connection Error: $e'};
-    }
-  }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

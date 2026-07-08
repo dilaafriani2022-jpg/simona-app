@@ -133,34 +133,44 @@ if ($kelas_res) {
     $kelas_total = (int)$kelas_res->fetch_assoc()['c'];
 }
 
+// Ambil semester dari parameter (default ke 1)
+$semester = isset($_GET['semester']) ? (int)$_GET['semester'] : 1;
+
+// Ambil tahun ajaran aktif & hitung semester aktif berdasarkan tanggal
+$tahun_ajaran_aktif = "-";
+$semester_aktif_label = "Semester Ganjil"; // default
+$ta_res = $conn->query("SELECT * FROM tahun_ajaran WHERE status = 'aktif' LIMIT 1");
+if ($ta_res && $row_ta = $ta_res->fetch_assoc()) {
+    $tahun_ajaran_aktif = $row_ta['tahun'];
+    $today = date('Y-m-d');
+    
+    // Check if today falls in Semester 2
+    $mulai_sem2 = $row_ta['tanggal_mulai_semester_2'];
+    $akhir_sem2 = $row_ta['tanggal_akhir_semester_2'];
+    
+    if ($mulai_sem2 && $akhir_sem2) {
+        if ($today >= $mulai_sem2 && $today <= $akhir_sem2) {
+            $semester_aktif_label = "Semester Genap";
+        }
+    }
+}
+
+// Hitung jumlah anak yang sudah dinilai hari ini (tipe = 'checklist')
+$today = date('Y-m-d');
 $laporan_selesai = 0;
-$lap_selesai_res = $conn->query("SELECT COUNT(*) AS c FROM rekap_aspek_bulanan WHERE bulan = 6");
+$lap_selesai_res = $conn->query("
+    SELECT COUNT(DISTINCT id_anak) AS c
+    FROM penilaian
+    WHERE tipe = 'checklist' AND tanggal = '$today'
+");
 if ($lap_selesai_res) {
     $laporan_selesai = (int)$lap_selesai_res->fetch_assoc()['c'];
-}
-
-$laporan_menunggu = 0;
-$lap_menunggu_res = $conn->query("SELECT COUNT(*) AS c FROM rekap_aspek_bulanan WHERE bulan = 6 AND status_validasi = 'menunggu'");
-if ($lap_menunggu_res) {
-    $laporan_menunggu = (int)$lap_menunggu_res->fetch_assoc()['c'];
-}
-
-$laporan_disetujui = 0;
-$lap_disetujui_res = $conn->query("SELECT COUNT(*) AS c FROM rekap_aspek_bulanan WHERE bulan = 6 AND status_validasi = 'disetujui'");
-if ($lap_disetujui_res) {
-    $laporan_disetujui = (int)$lap_disetujui_res->fetch_assoc()['c'];
 }
 
 $nama_sekolah = "TK Negeri 2 Bengkalis";
 $profil_res = $conn->query("SELECT nama_sekolah FROM sekolah LIMIT 1");
 if ($profil_res && $profil_res->num_rows > 0) {
     $nama_sekolah = $profil_res->fetch_assoc()['nama_sekolah'];
-}
-
-$tahun_ajaran_aktif = "-";
-$ta_res = $conn->query("SELECT tahun FROM tahun_ajaran WHERE status = 'aktif' LIMIT 1");
-if ($ta_res && $ta_res->num_rows > 0) {
-    $tahun_ajaran_aktif = $ta_res->fetch_assoc()['tahun'];
 }
 
 $monthly_stats = [];
@@ -180,10 +190,9 @@ echo json_encode([
         "laporan_semester"  => $anak_total,
         "jumlah_kelas"      => $kelas_total,
         "laporan_selesai"   => $laporan_selesai,
-        "laporan_menunggu"  => $laporan_menunggu,
-        "laporan_disetujui" => $laporan_disetujui,
         "nama_sekolah"      => $nama_sekolah,
         "tahun_ajaran_aktif"=> $tahun_ajaran_aktif,
+        "semester_aktif_label" => $semester_aktif_label,
         "monthly_stats"     => $monthly_stats,
 
         // Field trend baru — dibaca oleh Flutter

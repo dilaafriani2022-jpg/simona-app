@@ -40,13 +40,11 @@ if ($method == 'GET') {
                 u.wali_nama, u.wali_hubungan, u.wali_pekerjaan, u.wali_hp,
                 k.nama_kelas,
                 ta.tahun    AS tahun_ajaran,
-                ta.id       AS id_tahun_ajaran,
-                r.status_validasi AS status_validasi
+                ta.id       AS id_tahun_ajaran
             FROM anak s
             LEFT JOIN kelas k         ON s.id_kelas = k.id
             LEFT JOIN tahun_ajaran ta ON k.id_tahun_ajaran = ta.id
-            LEFT JOIN users u         ON s.id_ortu = u.id
-            LEFT JOIN rekap_aspek_bulanan r ON s.id = r.id_anak AND r.bulan = 6 AND r.semester = $semester";
+            LEFT JOIN users u         ON s.id_ortu = u.id";
 
     $where = [];
     if (!empty($search)) {

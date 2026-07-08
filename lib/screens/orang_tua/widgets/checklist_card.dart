@@ -6,6 +6,17 @@ class ChecklistCard extends StatelessWidget {
 
   const ChecklistCard({super.key, required this.item});
 
+  String _getShortAspekName(String fullName) {
+    if (fullName.contains('Agama')) {
+      return 'Agama & Budi Pekerti';
+    } else if (fullName.contains('Literasi') || fullName.contains('STEAM') || fullName.contains('Sains') || fullName.contains('Matematika')) {
+      return 'Literasi & STEAM';
+    } else if (fullName.contains('Jati Diri')) {
+      return 'Jati Diri';
+    }
+    return fullName;
+  }
+
   @override
   Widget build(BuildContext context) {
     final status = item['status']?.toString() ?? 'TM';
@@ -23,6 +34,7 @@ class ChecklistCard extends StatelessWidget {
     }
 
     final aspek = item['nama_aspek'] ?? 'Lainnya';
+    final shortAspek = _getShortAspekName(aspek);
 
     return GestureDetector(
       onTap: () => _showChecklistDetailSheet(context, statusColor, emoji),
@@ -62,7 +74,7 @@ class ChecklistCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            aspek,
+                            shortAspek,
                             style: TextStyle(
                               color: statusColor,
                               fontWeight: FontWeight.bold,
@@ -428,12 +440,19 @@ class ChecklistCard extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 16, color: Colors.grey.shade400),
           const SizedBox(width: 10),
           Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
-          const Spacer(),
-          Text(value, style: const TextStyle(fontSize: 12, color: Color(0xFF1E293B), fontWeight: FontWeight.bold)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF1E293B), fontWeight: FontWeight.bold),
+              textAlign: TextAlign.end,
+            ),
+          ),
         ],
       ),
     );

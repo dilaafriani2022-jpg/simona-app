@@ -24,65 +24,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             exit;
         }
 
-        // ── MODE: REKAP BULANAN (Rangkuman per bulan untuk Orang Tua) ─────────
-        if ($type === 'rekap_bulanan') {
-            $sql = "SELECT
-                        rb.id,
-                        rb.bulan,
-                        rb.semester,
-                        rb.status_akhir,
-                        rb.catatan_perkembangan,
-                        rb.created_at,
-                        kg.nama_kegiatan,
-                        tp.nama_tujuan,
-                        ap.nama_aspek,
-                        g.name AS nama_guru
-                    FROM rekap_penilaian_bulanan rb
-                    JOIN kegiatan_pembelajaran kg ON rb.id_kegiatan = kg.id
-                    JOIN tujuan_pembelajaran tp ON kg.id_tujuan = tp.id
-                    JOIN aspek_penilaian ap ON tp.id_aspek = ap.id
-                    JOIN users g ON rb.id_guru = g.id
-                    WHERE rb.id_anak = $anak_id
-                      AND rb.semester = $semester";
-
-            if ($bulan) $sql .= " AND rb.bulan = $bulan";
-            $sql .= " ORDER BY rb.bulan ASC, ap.nama_aspek ASC";
-
-            $result = $conn->query($sql);
-            if (!$result) {
-                http_response_code(500);
-                echo json_encode(['status' => 'error', 'message' => $conn->error]);
-                exit;
-            }
-
-            $rekap_list = [];
-            $bulan_map  = [];
-
-            while ($row = $result->fetch_assoc()) {
-                $rekap_list[] = $row;
-                $b = $row['bulan'];
-                if (!isset($bulan_map[$b])) {
-                    $bulan_map[$b] = ['bulan' => $b, 'aspek' => [], 'catatan' => ''];
-                }
-                $aspek = $row['nama_aspek'];
-                if (!isset($bulan_map[$b]['aspek'][$aspek])) {
-                    $bulan_map[$b]['aspek'][$aspek] = $row['status_akhir'];
-                }
-                // Ambil catatan perkembangan (non-empty)
-                if (!empty($row['catatan_perkembangan'])) {
-                    $bulan_map[$b]['catatan'] = $row['catatan_perkembangan'];
-                }
-            }
-
-            echo json_encode([
-                'status'   => 'success',
-                'message'  => 'Rekap penilaian bulanan berhasil diambil',
-                'data'     => $rekap_list,
-                'ringkasan' => array_values($bulan_map),
-                'total'    => count($rekap_list)
-            ]);
-            exit;
-        }
 
         // ── MODE: DETAIL CHECKLIST (Data mentah per minggu untuk orang tua) ──
         $sql = "SELECT

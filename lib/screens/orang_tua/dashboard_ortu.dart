@@ -65,7 +65,6 @@ class _DashboardOrtuState extends State<DashboardOrtu>
   List<dynamic> _ekstraList = [];
   List<dynamic> _refleksiGuruList = [];
   List<dynamic> _refleksiOrtuList = [];
-  List<dynamic> _laporanRingkasan = [];    // rekap bulanan
 
 
   // Halaman Laporan: Detil Rekap Penilaian State
@@ -75,7 +74,8 @@ class _DashboardOrtuState extends State<DashboardOrtu>
   Map<String, dynamic> _narasiDataLaporan = {};
   Map<String, dynamic> _kehadiranStatsLaporan = {'Hadir': 0, 'Sakit': 0, 'Izin': 0, 'Alpa': 0};
   List<dynamic> _ekskulListLaporan = [];
-  List<dynamic> _activityRecapListLaporan = [];
+  List<dynamic> _rekapKegiatanList = []; // Rekap kegiatan pembelajaran bulanan
+
 
   @override
   void initState() {
@@ -173,9 +173,7 @@ class _DashboardOrtuState extends State<DashboardOrtu>
           idOrtu: int.tryParse(widget.user['id'].toString()));
       if (roRes['status'] == 'success') _refleksiOrtuList = roRes['data'] ?? [];
 
-      // Laporan rekap bulanan
-      final lapRes = await ApiService.getLaporanAnak(sId);
-      if (lapRes['status'] == 'success') _laporanRingkasan = lapRes['ringkasan'] ?? [];
+
 
       // Load monthly recap details
       await _loadMonthlyRecapForParent();
@@ -197,9 +195,6 @@ class _DashboardOrtuState extends State<DashboardOrtu>
     if (mounted) setState(() => _isLoadingMonthlyRecap = true);
 
     try {
-      final calendarMonth = _semesterLaporan == 1 ? _selectedBulanLaporan + 6 : _selectedBulanLaporan;
-      final year = DateTime.now().year;
-
       final narasiRes = await ApiService.fetch(
         'manage_rekap_bulanan.php?type=narasi_aspek&id_anak=$sId&bulan=$_selectedBulanLaporan&semester=$_semesterLaporan',
       );
@@ -208,7 +203,7 @@ class _DashboardOrtuState extends State<DashboardOrtu>
       }
 
       final kehadiranRes = await ApiService.fetch(
-        'get_kehadiran_ortu.php?id_anak=$sId&bulan=$calendarMonth&tahun=$year',
+        'get_kehadiran_ortu.php?id_anak=$sId&bulan=$_selectedBulanLaporan&semester=$_semesterLaporan',
       );
       if (kehadiranRes['status'] == 'success') {
         _kehadiranStatsLaporan = Map<String, dynamic>.from(kehadiranRes['stats'] ?? {
@@ -226,14 +221,16 @@ class _DashboardOrtuState extends State<DashboardOrtu>
         _ekskulListLaporan = List<dynamic>.from(ekskulRes['data'] ?? []);
       }
 
-      final recapsRes = await ApiService.fetch(
-        'manage_rekap_bulanan.php?type=view&id_anak=$sId&bulan=$_selectedBulanLaporan&semester=$_semesterLaporan',
+      // Rekap kegiatan pembelajaran yang sudah disimpan guru
+      final rekapKegRes = await ApiService.fetch(
+        'manage_rekap_bulanan.php?type=rekap_kegiatan_ortu&id_anak=$sId&bulan=$_selectedBulanLaporan&semester=$_semesterLaporan',
       );
-      if (recapsRes['status'] == 'success') {
-        _activityRecapListLaporan = List<dynamic>.from(recapsRes['data'] ?? []);
+      if (rekapKegRes['status'] == 'success') {
+        _rekapKegiatanList = List<dynamic>.from(rekapKegRes['data'] ?? []);
       } else {
-        _activityRecapListLaporan = [];
+        _rekapKegiatanList = [];
       }
+
     } catch (e) {
       debugPrint("Error loading parent monthly recap: $e");
     } finally {
@@ -320,7 +317,6 @@ class _DashboardOrtuState extends State<DashboardOrtu>
       _NavItem(Icons.home_outlined,             Icons.home_rounded,             'Beranda'),
       _NavItem(Icons.auto_graph_outlined,        Icons.auto_graph_rounded,       'Perkembangan'),
       _NavItem(Icons.calendar_month_outlined,    Icons.calendar_month_rounded,   'Kehadiran'),
-      _NavItem(Icons.assignment_outlined,          Icons.assignment_rounded,        'Rencana Belajar'),
       _NavItem(Icons.description_outlined,       Icons.description_rounded,      'Laporan'),
       _NavItem(Icons.person_outline,             Icons.person_rounded,           'Profil'),
     ];
@@ -450,10 +446,6 @@ class _DashboardOrtuState extends State<DashboardOrtu>
           onMonthPickerTap: _showMonthYearPicker,
         );
       case 3:
-        return RencanaBelajarTab(
-          selectedAnak: _selectedAnak,
-        );
-      case 4:
         return LaporanTab(
           anak: _selectedAnak,
           selectedBulan: _selectedBulanLaporan,
@@ -461,10 +453,10 @@ class _DashboardOrtuState extends State<DashboardOrtu>
           narasiData: _narasiDataLaporan,
           kehadiranStats: _kehadiranStatsLaporan,
           ekskulList: _ekskulListLaporan,
-          activityRecaps: _activityRecapListLaporan,
           checklistRingkasan: _penilaianSummary,
           anekdotList: _anekdotList,
           karyaList: _karyaList,
+          rekapKegiatanList: _rekapKegiatanList,
           isLoading: _isLoading,
           isLoadingMonthlyRecap: _isLoadingMonthlyRecap,
           onRefresh: _fetchDataForSelectedAnak,
@@ -472,17 +464,19 @@ class _DashboardOrtuState extends State<DashboardOrtu>
             setState(() {
               _semesterLaporan = sem;
               _selectedBulanLaporan = 1;
+              _rekapKegiatanList = [];
             });
             _loadMonthlyRecapForParent();
           },
           onBulanSelected: (b) {
             setState(() {
               _selectedBulanLaporan = b;
+              _rekapKegiatanList = [];
             });
             _loadMonthlyRecapForParent();
           },
         );
-      case 5:
+      case 4:
         return ProfilTab(
           user: widget.user,
           anakList: _anakList,

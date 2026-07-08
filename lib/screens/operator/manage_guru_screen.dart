@@ -49,9 +49,7 @@ class _ManageGuruScreenState extends State<ManageGuruScreen>
       ..repeat(reverse: true);
     _fetchData();
     _fetchKelas();
-    _searchController.addListener(() {
-      setState(() { _searchQuery = _searchController.text.toLowerCase(); _applyFilter(); });
-    });
+    _searchController.addListener(_applyFilter);
   }
 
   @override
@@ -74,8 +72,10 @@ class _ManageGuruScreenState extends State<ManageGuruScreen>
         _isConnected = result['source'] == 'server';
       } else { _allGuru = []; _isConnected = false; }
     } catch (_) { _allGuru = []; _isConnected = false; }
-    _applyFilter();
-    setState(() => _isLoading = false);
+    setState(() {
+      _isLoading = false;
+      _runFilter();
+    });
   }
 
   Future<void> _fetchKelas() async {
@@ -85,16 +85,25 @@ class _ManageGuruScreenState extends State<ManageGuruScreen>
     } catch (_) {}
   }
 
-  void _applyFilter() {
-    _filteredGuru = _searchQuery.isEmpty ? List.from(_allGuru) : _allGuru.where((g) {
-      final name = (g['name']    ?? '').toString().toLowerCase();
-      final nip  = (g['nip']     ?? '').toString().toLowerCase();
-      final telp = (g['no_telp'] ?? '').toString().toLowerCase();
-      final jab  = (g['jabatan'] ?? '').toString().toLowerCase();
-      return name.contains(_searchQuery) || nip.contains(_searchQuery) ||
-             telp.contains(_searchQuery) || jab.contains(_searchQuery);
+  // Hitung ulang _filteredGuru berdasarkan teks search — TIDAK memanggil setState.
+  void _runFilter() {
+    final q = _searchController.text.toLowerCase();
+    _searchQuery = q;
+    _filteredGuru = q.isEmpty ? List.from(_allGuru) : _allGuru.where((g) {
+      final name  = (g['name']       ?? '').toString().toLowerCase();
+      final nip   = (g['nip']        ?? '').toString().toLowerCase();
+      final nik   = (g['nik']        ?? '').toString().toLowerCase();
+      final telp  = (g['no_telp']    ?? '').toString().toLowerCase();
+      final jab   = (g['jabatan']    ?? '').toString().toLowerCase();
+      final kelas = (g['nama_kelas'] ?? '').toString().toLowerCase();
+      return name.contains(q)  || nip.contains(q)  || nik.contains(q) ||
+             telp.contains(q)  || jab.contains(q)  || kelas.contains(q);
     }).toList();
-    setState(() {});
+  }
+
+  // Wrapper yang memanggil _runFilter lalu setState — dipakai oleh listener.
+  void _applyFilter() {
+    setState(_runFilter);
   }
 
   // ════════════════════════════════════════════════════════════════════════════
@@ -161,24 +170,24 @@ class _ManageGuruScreenState extends State<ManageGuruScreen>
 
           // ── Step 0: Identitas Diri ───────────────────────────────────────
           Widget buildStep0() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            _fRow([
-              _fCol('Nama Lengkap *', _fField(nameCtrl,  Icons.badge_rounded,        'Contoh: Ibu Siti Aminah, S.Pd')),
-              _fCol('NIP',            _fField(nipCtrl,   Icons.fingerprint_rounded,  'Nomor Induk Pegawai', keyboard: TextInputType.number)),
-            ]),
+            _fLabel('Nama Lengkap *'),
+            _fField(nameCtrl, Icons.badge_rounded, 'Contoh: Ibu Siti Aminah, S.Pd'),
             const SizedBox(height: 14),
             _fRow([
-              _fCol('NIK',            _fField(nikCtrl,   Icons.credit_card_rounded,  '16 digit NIK', keyboard: TextInputType.number)),
-              _fCol('Jenis Kelamin *', _fDropStr(value: selectedJK, items: const ['L', 'P'],
-                displayItems: const ['Laki-laki', 'Perempuan'], hint: 'Pilih',
-                icon: Icons.wc_rounded, onChanged: (v) => setSheet(() => selectedJK = v ?? ''))),
+              _fCol('NIP', _fField(nipCtrl, Icons.fingerprint_rounded, 'Nomor Induk Pegawai', keyboard: TextInputType.number)),
+              _fCol('NIK', _fField(nikCtrl, Icons.credit_card_rounded, '16 digit NIK', keyboard: TextInputType.number)),
             ]),
             const SizedBox(height: 14),
-            _fLabel('Tempat, Tanggal Lahir'),
-            _fRow([
-              Expanded(child: _fField(ttlCtrl, Icons.location_city_rounded, 'Tempat lahir')),
-              const SizedBox(width: 10),
-              Expanded(child: _datePicker(ctx: ctx, ctrl: tglCtrl, setSheet: setSheet)),
-            ]),
+            _fLabel('Jenis Kelamin *'),
+            _fDropStr(value: selectedJK, items: const ['L', 'P'],
+              displayItems: const ['Laki-laki', 'Perempuan'], hint: 'Pilih jenis kelamin',
+              icon: Icons.wc_rounded, onChanged: (v) => setSheet(() => selectedJK = v ?? '')),
+            const SizedBox(height: 14),
+            _fLabel('Tempat Lahir'),
+            _fField(ttlCtrl, Icons.location_city_rounded, 'Contoh: Bengkalis'),
+            const SizedBox(height: 14),
+            _fLabel('Tanggal Lahir'),
+            _datePicker(ctx: ctx, ctrl: tglCtrl, setSheet: setSheet),
             const SizedBox(height: 14),
             _fRow([
               _fCol('Agama', _fDropStr(value: selectedAgama, items: agamaList, hint: 'Pilih agama',
@@ -250,10 +259,11 @@ class _ManageGuruScreenState extends State<ManageGuruScreen>
 
           // ── Step 3: Kontak & Tugas ──────────────────────────────────────
           Widget buildStep3() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            _fRow([
-              _fCol('No. HP / WA', _fField(telpCtrl, Icons.phone_rounded, '08xxxxxxxxxx', keyboard: TextInputType.phone)),
-              _fCol('Email', _fField(emailCtrl, Icons.email_rounded, 'email@contoh.com', keyboard: TextInputType.emailAddress)),
-            ]),
+            _fLabel('No. HP / WA'),
+            _fField(telpCtrl, Icons.phone_rounded, '08xxxxxxxxxx', keyboard: TextInputType.phone),
+            const SizedBox(height: 14),
+            _fLabel('Email'),
+            _fField(emailCtrl, Icons.email_rounded, 'email@contoh.com', keyboard: TextInputType.emailAddress),
             const SizedBox(height: 14),
             _fLabel('Alamat Lengkap'),
             _fArea(ctrl: alamatCtrl, hint: 'Jalan, RT/RW, Kelurahan, Kecamatan...'),
@@ -274,7 +284,7 @@ class _ManageGuruScreenState extends State<ManageGuruScreen>
                   hint: Row(children: [
                     Icon(Icons.class_rounded, color: _primary, size: 18),
                     const SizedBox(width: 10),
-                    Text('-- Belum Ditugaskan --', style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
+                    const Flexible(child: Text('-- Belum Ditugaskan --', overflow: TextOverflow.ellipsis)),
                   ]),
                   icon: Icon(Icons.keyboard_arrow_down_rounded, color: _primary),
                   items: [
@@ -286,8 +296,11 @@ class _ManageGuruScreenState extends State<ManageGuruScreen>
                         child: Row(children: [
                           Icon(Icons.class_rounded, color: _primary, size: 14),
                           const SizedBox(width: 8),
-                          Text('${k['nama_kelas']}${k['tahun'] != null ? ' (${k['tahun']})' : ''}',
-                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                          Flexible(child: Text(
+                            '${k['nama_kelas']}${k['tahun'] != null ? ' (${k['tahun']})' : ''}',
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                          )),
                         ]),
                       );
                     }),
@@ -309,8 +322,10 @@ class _ManageGuruScreenState extends State<ManageGuruScreen>
             return null;
           }
 
+          final mq = MediaQuery.of(ctx);
+
           return Container(
-            height: MediaQuery.of(ctx).size.height * 0.93,
+            height: mq.size.height * 0.93,
             decoration: const BoxDecoration(
               color: Color(0xFFFDF8F3),
               borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
@@ -377,7 +392,7 @@ class _ManageGuruScreenState extends State<ManageGuruScreen>
 
               // Content
               Expanded(child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                padding: EdgeInsets.fromLTRB(16, 14, 16, mq.viewInsets.bottom + 16),
                 child: _formCard(children: [
                   if (currentStep == 0) buildStep0(),
                   if (currentStep == 1) buildStep1(),
@@ -388,7 +403,7 @@ class _ManageGuruScreenState extends State<ManageGuruScreen>
 
               // Bottom nav
               Container(
-                padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(ctx).padding.bottom + 12),
+                padding: EdgeInsets.fromLTRB(16, 12, 16, mq.padding.bottom + 12),
                 decoration: BoxDecoration(color: Colors.white,
                   boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, -4))]),
                 child: Row(children: [
@@ -641,7 +656,7 @@ class _ManageGuruScreenState extends State<ManageGuruScreen>
     if (confirmed != true || !mounted) return;
 
     if (!_isConnected) {
-      setState(() { _allGuru.removeWhere((e) => e['id'] == guru['id']); _applyFilter(); });
+      setState(() { _allGuru.removeWhere((e) => e['id'] == guru['id']); _runFilter(); });
       _snackOk('Data guru dihapus'); return;
     }
 

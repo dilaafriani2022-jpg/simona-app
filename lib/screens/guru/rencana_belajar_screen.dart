@@ -3,17 +3,17 @@ import 'prosem_tab.dart';
 import 'rppm_tab.dart';
 import 'modul_ajar_tab.dart';
 
-class JadwalScreen extends StatefulWidget {
+class RencanaBelajarScreen extends StatefulWidget {
   final int? idGuru;
   final int? idKelas;
   final bool isReadOnly;
-  const JadwalScreen({super.key, this.idGuru, this.idKelas, this.isReadOnly = false});
+  const RencanaBelajarScreen({super.key, this.idGuru, this.idKelas, this.isReadOnly = false});
 
   @override
-  State<JadwalScreen> createState() => _JadwalScreenState();
+  State<RencanaBelajarScreen> createState() => _RencanaBelajarScreenState();
 }
 
-class _JadwalScreenState extends State<JadwalScreen> with SingleTickerProviderStateMixin {
+class _RencanaBelajarScreenState extends State<RencanaBelajarScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   static const Color _primary = Color(0xFFC17B2F);
@@ -66,4 +66,3 @@ class _JadwalScreenState extends State<JadwalScreen> with SingleTickerProviderSt
     );
   }
 }
-

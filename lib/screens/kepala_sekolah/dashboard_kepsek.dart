@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../services/api_service.dart';
 import 'tabs/home_tab.dart';
 import 'tabs/monitoring_tab.dart';
@@ -13,18 +14,24 @@ class DashboardKepsek extends StatefulWidget {
   State<DashboardKepsek> createState() => _DashboardKepsekState();
 }
 
-class _DashboardKepsekState extends State<DashboardKepsek> {
+class _DashboardKepsekState extends State<DashboardKepsek>
+    with SingleTickerProviderStateMixin {
+  // ── Palet ────────────────────────────────────────────────────────────────
+  static const Color _navy    = Color(0xFF1A1F3C);
+  static const Color _gold    = Color(0xFFD4A853);
+  static const Color _cream   = Color(0xFFFBF8F3);
+  static const Color _inactive = Color(0xFFB0AECB);
+
   int _currentIndex = 0;
   bool _isLoadingHome = true;
   bool _isLoadingMonitoring = true;
-  
+
   Map<String, dynamic> _stats = {};
   List<dynamic> _notifications = [];
-  
-  // Monitoring Data
+
   List<dynamic> _guruMonitoring = [];
   List<dynamic> _anakMonitoring = [];
-  Map<String, dynamic> _aspekStats = {'agama': 0, 'jati_diri': 0, 'steam': 0, 'total': 0};
+  Map<String, dynamic> _aspekStats   = {'agama': 0, 'jati_diri': 0, 'steam': 0, 'total': 0};
   Map<String, dynamic> _absensiStats = {'hadir': 0, 'sakit': 0, 'izin': 0, 'alpa': 0};
 
   int _selectedSemester = 1;
@@ -42,11 +49,11 @@ class _DashboardKepsekState extends State<DashboardKepsek> {
     if (!mounted) return;
     setState(() => _isLoadingHome = true);
     try {
-      final statsRes = await ApiService.getDashboardStats();
+      final statsRes = await ApiService.getDashboardStats(semester: _selectedSemester);
       if (statsRes['status'] == 'success') {
         _stats = statsRes['data'] ?? {};
       }
-      final notifRes = await ApiService.fetch('get_notifications.php?role=kepsek');
+      final notifRes = await ApiService.fetch('get_notifications.php?role=kepsek&semester=$_selectedSemester');
       if (notifRes['status'] == 'success') {
         _notifications = notifRes['data'] ?? [];
       }
@@ -61,13 +68,14 @@ class _DashboardKepsekState extends State<DashboardKepsek> {
     if (!mounted) return;
     setState(() => _isLoadingMonitoring = true);
     try {
-      final res = await ApiService.fetch('get_kepsek_monitoring.php?semester=$_selectedSemester');
+      final res = await ApiService.fetch(
+          'get_kepsek_monitoring.php?semester=$_selectedSemester');
       if (res['status'] == 'success') {
         final mData = res['data'] ?? {};
         _guruMonitoring = mData['guru_monitoring'] ?? [];
         _anakMonitoring = mData['anak_monitoring'] ?? [];
-        _aspekStats = Map<String, dynamic>.from(mData['aspek_stats'] ?? {'agama': 0, 'jati_diri': 0, 'steam': 0, 'total': 0});
-        _absensiStats = Map<String, dynamic>.from(mData['absensi_stats'] ?? {'hadir': 0, 'sakit': 0, 'izin': 0, 'alpa': 0});
+        _aspekStats     = Map<String, dynamic>.from(mData['aspek_stats']   ?? {'agama': 0, 'jati_diri': 0, 'steam': 0, 'total': 0});
+        _absensiStats   = Map<String, dynamic>.from(mData['absensi_stats'] ?? {'hadir': 0, 'sakit': 0, 'izin': 0, 'alpa': 0});
       }
     } catch (e) {
       debugPrint("Error loading monitoring data: $e");
@@ -78,40 +86,114 @@ class _DashboardKepsekState extends State<DashboardKepsek> {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+    ));
+
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF9F6),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            if (_currentIndex == 0) {
-              await _loadHomeData();
-            } else {
-              await _loadMonitoringData();
-            }
-          },
-          child: _buildBody(),
+      backgroundColor: _cream,
+      extendBody: true,
+      body: RefreshIndicator(
+        color: _navy,
+        backgroundColor: Colors.white,
+        onRefresh: () async {
+          if (_currentIndex == 0) {
+            await _loadHomeData();
+          } else {
+            await _loadMonitoringData();
+          }
+        },
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 280),
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+            child: child,
+          ),
+          child: KeyedSubtree(
+            key: ValueKey(_currentIndex),
+            child: _buildBody(),
+          ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
+      bottomNavigationBar: _buildBottomNav(),
+    );
+  }
+
+  Widget _buildBottomNav() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+      decoration: BoxDecoration(
+        color: _navy,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: _navy.withValues(alpha: 0.28),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        child: Row(
+          children: [
+            _navItem(0, Icons.home_rounded, Icons.home_outlined, 'Beranda'),
+            _navItem(1, Icons.analytics_rounded, Icons.analytics_outlined, 'Monitoring'),
+            _navItem(2, Icons.bar_chart_rounded, Icons.bar_chart_outlined, 'Statistik'),
+            _navItem(3, Icons.person_rounded, Icons.person_outline_rounded, 'Profil'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _navItem(int index, IconData activeIcon, IconData inactiveIcon, String label) {
+    final bool isActive = _currentIndex == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          if (_currentIndex == index) return;
+          HapticFeedback.lightImpact();
+          setState(() => _currentIndex = index);
           if (index == 0) _loadHomeData();
           if (index == 1 || index == 2) _loadMonitoringData();
         },
-        selectedItemColor: const Color(0xFF1E1B4B),
-        unselectedItemColor: const Color(0xFF94A3B8),
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-        unselectedLabelStyle: const TextStyle(fontSize: 11),
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard_rounded), label: 'Beranda'),
-          BottomNavigationBarItem(icon: Icon(Icons.analytics_rounded), label: 'Monitoring'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart_rounded), label: 'Statistik'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profil'),
-        ],
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          decoration: BoxDecoration(
+            color: isActive ? _gold.withValues(alpha: 0.15) : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  isActive ? activeIcon : inactiveIcon,
+                  key: ValueKey(isActive),
+                  size: 22,
+                  color: isActive ? _gold : _inactive,
+                ),
+              ),
+              const SizedBox(height: 4),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                  color: isActive ? _gold : _inactive,
+                  letterSpacing: 0.2,
+                ),
+                child: Text(label),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -120,11 +202,15 @@ class _DashboardKepsekState extends State<DashboardKepsek> {
     switch (_currentIndex) {
       case 0:
         return _isLoadingHome
-            ? const Center(child: CircularProgressIndicator())
+            ? _buildLoading()
             : HomeTab(
                 stats: _stats,
                 notifications: _notifications,
                 currentUserData: _currentUserData,
+                onTapRekap: () {
+                  setState(() => _currentIndex = 1);
+                  _loadMonitoringData();
+                },
               );
       case 1:
         return MonitoringTab(
@@ -133,15 +219,14 @@ class _DashboardKepsekState extends State<DashboardKepsek> {
           anakMonitoring: _anakMonitoring,
           selectedSemester: _selectedSemester,
           onSemesterChanged: (semester) {
-            setState(() {
-              _selectedSemester = semester;
-            });
+            setState(() => _selectedSemester = semester);
             _loadMonitoringData();
+            _loadHomeData();
           },
         );
       case 2:
         return _isLoadingMonitoring
-            ? const Center(child: CircularProgressIndicator())
+            ? _buildLoading()
             : StatistikTab(
                 aspekStats: _aspekStats,
                 absensiStats: _absensiStats,
@@ -150,13 +235,39 @@ class _DashboardKepsekState extends State<DashboardKepsek> {
         return ProfilTab(
           currentUserData: _currentUserData,
           onProfileUpdated: (updatedData) {
-            setState(() {
-              _currentUserData = updatedData;
-            });
+            setState(() => _currentUserData = updatedData);
           },
         );
       default:
-        return const Center(child: Text("Tab not found"));
+        return const SizedBox.shrink();
     }
+  }
+
+  Widget _buildLoading() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 36,
+            height: 36,
+            child: CircularProgressIndicator(
+              color: _navy,
+              backgroundColor: _navy.withValues(alpha: 0.1),
+              strokeWidth: 3,
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Memuat data…',
+            style: TextStyle(
+              color: Color(0xFF8A8AAA),
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

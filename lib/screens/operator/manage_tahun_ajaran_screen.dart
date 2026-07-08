@@ -189,73 +189,75 @@ class _ManageTahunAjaranScreenState extends State<ManageTahunAjaranScreen> {
             ),
 
             // Form
-            SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
-                // ── Tahun ─────────────────────────────────────
-                _formSection(
-                  icon: Icons.calendar_month_rounded, title: 'Periode Tahun Ajaran', color: _primary,
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    // Preset chips
-                    _fLabel('Pilih Cepat'),
-                    Wrap(spacing: 8, runSpacing: 8, children: presets.map((p) {
-                      final sel = tahunCtrl.text == p;
-                      return GestureDetector(
-                        onTap: () => setSheet(() => tahunCtrl.text = p),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                          decoration: BoxDecoration(
-                            color: sel ? _primary : Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: sel ? _primary : Colors.grey.shade200),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  
+                  // ── Tahun ─────────────────────────────────────
+                  _formSection(
+                    icon: Icons.calendar_month_rounded, title: 'Periode Tahun Ajaran', color: _primary,
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      // Preset chips
+                      _fLabel('Pilih Cepat'),
+                      Wrap(spacing: 8, runSpacing: 8, children: presets.map((p) {
+                        final sel = tahunCtrl.text == p;
+                        return GestureDetector(
+                          onTap: () => setSheet(() => tahunCtrl.text = p),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                            decoration: BoxDecoration(
+                              color: sel ? _primary : Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: sel ? _primary : Colors.grey.shade200),
+                            ),
+                            child: Text(p, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                              color: sel ? Colors.white : _slate)),
                           ),
-                          child: Text(p, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
-                            color: sel ? Colors.white : _slate)),
-                        ),
-                      );
-                    }).toList()),
-                    const SizedBox(height: 12),
-                    _fLabel('Tahun Ajaran *'),
-                    _fField(tahunCtrl, Icons.calendar_today_rounded, 'Misal: 2025/2026'),
-                    const SizedBox(height: 4),
-                    Text('Format: TAHUN_MULAI/TAHUN_SELESAI', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-                  ]),
-                ),
-                const SizedBox(height: 12),
-
-                // ── Status ────────────────────────────────────
-                _formSection(
-                  icon: Icons.toggle_on_rounded, title: 'Status Tahun Ajaran', color: _navy,
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    // Info
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: _amber.withOpacity(0.07),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: _amber.withOpacity(0.2)),
-                      ),
-                      child: Row(children: [
-                        Icon(Icons.info_outline_rounded, color: _amber, size: 16),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(
-                          'Hanya 1 tahun ajaran yang boleh berstatus Aktif. Mengaktifkan tahun ajaran ini akan menonaktifkan yang lain.',
-                          style: TextStyle(fontSize: 11, color: _amber.withOpacity(0.9)),
-                        )),
-                      ]),
-                    ),
-                    Row(children: [
-                      Expanded(child: _statusOption('aktif', 'Aktif', Icons.check_circle_rounded, Colors.green, statusValue, (v) => setSheet(() => statusValue = v))),
-                      const SizedBox(width: 10),
-                      Expanded(child: _statusOption('nonaktif', 'Non-Aktif', Icons.cancel_rounded, Colors.grey, statusValue, (v) => setSheet(() => statusValue = v))),
+                        );
+                      }).toList()),
+                      const SizedBox(height: 12),
+                      _fLabel('Tahun Ajaran *'),
+                      _fField(tahunCtrl, Icons.calendar_today_rounded, 'Misal: 2025/2026'),
+                      const SizedBox(height: 4),
+                      Text('Format: TAHUN_MULAI/TAHUN_SELESAI', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
                     ]),
-                  ]),
-                ),
-                const SizedBox(height: 20),
-              ]),
+                  ),
+                  const SizedBox(height: 12),
+  
+                  // ── Status ────────────────────────────────────
+                  _formSection(
+                    icon: Icons.toggle_on_rounded, title: 'Status Tahun Ajaran', color: _navy,
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      // Info
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: _amber.withOpacity(0.07),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: _amber.withOpacity(0.2)),
+                        ),
+                        child: Row(children: [
+                          Icon(Icons.info_outline_rounded, color: _amber, size: 16),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(
+                            'Hanya 1 tahun ajaran yang boleh berstatus Aktif. Mengaktifkan tahun ajaran ini akan menonaktifkan yang lain.',
+                            style: TextStyle(fontSize: 11, color: _amber.withOpacity(0.9)),
+                          )),
+                        ]),
+                      ),
+                      Row(children: [
+                        Expanded(child: _statusOption('aktif', 'Aktif', Icons.check_circle_rounded, Colors.green, statusValue, (v) => setSheet(() => statusValue = v))),
+                        const SizedBox(width: 10),
+                        Expanded(child: _statusOption('nonaktif', 'Non-Aktif', Icons.cancel_rounded, Colors.grey, statusValue, (v) => setSheet(() => statusValue = v))),
+                      ]),
+                    ]),
+                  ),
+                  const SizedBox(height: 20),
+                ]),
+              ),
             ),
 
             // Buttons

@@ -3,7 +3,7 @@ import '../../services/api_service.dart';
 import 'penilaian_checklist_screen.dart';
 import 'absensi_screen.dart';
 import 'anekdot_screen.dart';
-import 'jadwal_screen.dart';
+import 'rencana_belajar_screen.dart';
 import 'karya_screen.dart';
 import 'data_anak_screen.dart';
 import 'aspek_penilaian_screen.dart';
@@ -57,10 +57,11 @@ class _DashboardGuruState extends State<DashboardGuru>
   int    _anekdotCount    = 0;
   int    _karyaCount      = 0;
   int    _absensiCount    = 0;
-  int    _jadwalCount     = 0;
+  int    _rencanaCount    = 0;
 
   // Notifications
   List<dynamic> _notifications = [];
+  String _tahunAjaran = 'TA 2024/2025';
 
 
   // Local copy of user data (can be edited)
@@ -85,6 +86,22 @@ class _DashboardGuruState extends State<DashboardGuru>
       // Load anak & absensi
       List<dynamic> students = [];
       if (idKelas != null) {
+        try {
+          final kelasRes = await ApiService.fetch('manage_kelas.php');
+          if (kelasRes['status'] == 'success') {
+            final kelasList = kelasRes['data'] as List? ?? [];
+            final myKelas = kelasList.firstWhere(
+              (k) => int.tryParse(k['id'].toString()) == int.tryParse(idKelas.toString()),
+              orElse: () => null,
+            );
+            if (myKelas != null && myKelas['tahun'] != null) {
+              _tahunAjaran = 'TA ${myKelas['tahun']}';
+            }
+          }
+        } catch (e) {
+          debugPrint("Error loading class academic year: $e");
+        }
+
         final anakRes = await ApiService.fetch('manage_anak.php?id_kelas=$idKelas');
         if (anakRes['status'] == 'success') students = anakRes['data'] as List? ?? [];
 
@@ -141,7 +158,7 @@ class _DashboardGuruState extends State<DashboardGuru>
         final anekdotRes = await ApiService.fetch('manage_anekdot.php?id_guru=$idGuru&count=1');
         final karyaRes  = await ApiService.fetch('get_karya_anak.php?id_kelas=$idKelas&count=1');
         final absensiAllRes = await ApiService.fetch('manage_absensi.php?id_kelas=$idKelas&count=1');
-        final jadwalRes = await ApiService.fetch('manage_jadwal.php?id_kelas=$idKelas');
+        final rppmRes = await ApiService.fetch('manage_rpp.php?type=rppm&id_kelas=$idKelas');
 
         setState(() {
           _checklistCount = (checkRes['total']  ?? (checkRes['data'] as List?)?.length  ?? 0) is int
@@ -156,7 +173,7 @@ class _DashboardGuruState extends State<DashboardGuru>
           _absensiCount = (absensiAllRes['total'] ?? (absensiAllRes['data'] as List?)?.length ?? 0) is int
               ? absensiAllRes['total'] ?? (absensiAllRes['data'] as List?)?.length ?? 0
               : int.tryParse(absensiAllRes['total']?.toString() ?? '0') ?? 0;
-          _jadwalCount = (jadwalRes['data'] as List?)?.length ?? 0;
+          _rencanaCount = (rppmRes['data'] as List?)?.length ?? 0;
         });
       }
 
@@ -468,10 +485,10 @@ class _DashboardGuruState extends State<DashboardGuru>
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(color: _navy.withOpacity(0.08), borderRadius: BorderRadius.circular(20)),
-        child: const Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.access_time_rounded, size: 14, color: _navy),
-          SizedBox(width: 6),
-          Text('TA 2024/2025', style: TextStyle(fontSize: 12, color: _navy, fontWeight: FontWeight.w600)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.access_time_rounded, size: 14, color: _navy),
+          const SizedBox(width: 6),
+          Text(_tahunAjaran, style: const TextStyle(fontSize: 12, color: _navy, fontWeight: FontWeight.w600)),
         ])),
     ]);
   }
@@ -652,7 +669,7 @@ class _DashboardGuruState extends State<DashboardGuru>
         badge: null,
         onTap: () => Navigator.push(context,
           MaterialPageRoute(builder: (_) =>
-            const AspekPenilaianScreen())),
+            AspekPenilaianScreen(idGuru: idGuru))),
       ),
       // ── Baris 3 ──────────────────────────────────────────────────────
       _MenuData(
@@ -662,7 +679,7 @@ class _DashboardGuruState extends State<DashboardGuru>
         badge: null,
         onTap: () => Navigator.push(context,
           MaterialPageRoute(builder: (_) =>
-            JadwalScreen(idGuru: idGuru, idKelas: idKelas))),
+            RencanaBelajarScreen(idGuru: idGuru, idKelas: idKelas))),
       ),
       _MenuData(
         label: 'Ekstrakurikuler',
@@ -690,7 +707,7 @@ class _DashboardGuruState extends State<DashboardGuru>
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 0.82,
+      childAspectRatio: 0.74,
       children: menus.map((m) => _buildMenuCard(m)).toList(),
     );
   }
@@ -1052,14 +1069,15 @@ class _DashboardGuruState extends State<DashboardGuru>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setLocal) => Container(
-          height: MediaQuery.of(ctx).size.height * 0.92,
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
+        builder: (ctx, setLocal) {
+          final mq = MediaQuery.of(ctx);
+          return Container(
+            height: mq.size.height * 0.92,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
             children: [
               // Handle bar
               Padding(
@@ -1134,7 +1152,7 @@ class _DashboardGuruState extends State<DashboardGuru>
               const Divider(height: 1),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  padding: EdgeInsets.fromLTRB(20, 16, 20, mq.viewInsets.bottom + 16),
                   children: [
                     const _SectionLabel('Data Pribadi'),
                     const SizedBox(height: 10),
@@ -1224,9 +1242,10 @@ class _DashboardGuruState extends State<DashboardGuru>
               ),
             ],
           ),
-        ),
-      ),
-    );
+        );
+      },
+    ),
+  );
   }
 
   Widget _buildProfilePage() {
@@ -1345,14 +1364,14 @@ class _DashboardGuruState extends State<DashboardGuru>
                 child: GridView.count(
                   crossAxisCount: 3, shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.1,
+                  mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 0.95,
                   children: [
                     _statBox('Anak',      '$_totalAnak',   _green700),
                     _statBox('Checklist', '$_checklistCount', const Color(0xFFF97316)),
                     _statBox('Anekdot',   '$_anekdotCount',  _purple),
                     _statBox('Karya',     '$_karyaCount',    _teal),
                     _statBox('Absensi',   '$_absensiCount',  _rose),
-                    _statBox('Jadwal',    '$_jadwalCount',   _navy),
+                    _statBox('Rencana',    '$_rencanaCount',   _navy),
                   ],
                 )),
             ]),

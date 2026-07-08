@@ -292,6 +292,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _bgPage,
+      resizeToAvoidBottomInset: false,
       body: Column(
         children: [
           _buildHeader(),
@@ -923,7 +924,7 @@ class _SmartRoleSheet extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
+      padding: EdgeInsets.fromLTRB(20, 8, 20, MediaQuery.of(context).padding.bottom + 20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1197,19 +1198,18 @@ class _AddEditUserSheetState extends State<_AddEditUserSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 36),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+    final mq = MediaQuery.of(context);
+    return Container(
+      height: mq.size.height * 0.93,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(24, 8, 24, mq.viewInsets.bottom + 36),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
               _SheetHandle(),
 
               // Sheet title
@@ -1553,9 +1553,8 @@ class _AddEditUserSheetState extends State<_AddEditUserSheet> {
             ],
           ),
         ),
-      ),
-    );
-  }
+      );
+    }
 
   Widget _buildField({
     required TextEditingController ctrl,

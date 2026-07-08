@@ -10,6 +10,51 @@ require_once 'cors.php';
 $semester = isset($_GET['semester']) ? (int)$_GET['semester'] : 1;
 $bulan = isset($_GET['bulan']) ? (int)$_GET['bulan'] : 6; // default to semester report month
 
+// Ambil tahun ajaran aktif
+$res_ta_aktif = $conn->query("SELECT id, tahun FROM tahun_ajaran WHERE status = 'aktif' LIMIT 1");
+$ta_id = 0;
+$ta_aktif = '';
+if ($res_ta_aktif && $row_ta = $res_ta_aktif->fetch_assoc()) {
+    $ta_id = (int)$row_ta['id'];
+    $ta_aktif = $row_ta['tahun'];
+}
+
+$tgl_mulai = null;
+$tgl_akhir = null;
+
+if ($ta_aktif) {
+    // Query min(tanggal_mulai) dan max(tanggal_selesai) dari prosem
+    $res_prosem = $conn->query("
+        SELECT MIN(tanggal_mulai) AS tgl_mulai, MAX(tanggal_selesai) AS tgl_selesai
+        FROM prosem
+        WHERE tahun_ajaran = '" . $conn->real_escape_string($ta_aktif) . "'
+          AND semester = $semester
+    ");
+    if ($res_prosem && $row_ps = $res_prosem->fetch_assoc()) {
+        $tgl_mulai = $row_ps['tgl_mulai'];
+        $tgl_akhir = $row_ps['tgl_selesai'];
+    }
+}
+
+// Fallback ke tabel tahun_ajaran jika prosem belum memiliki rentang tanggal
+if (!$tgl_mulai || !$tgl_akhir) {
+    $kolom_mulai = ($semester == 1) ? 'tanggal_mulai_semester_1' : 'tanggal_mulai_semester_2';
+    $kolom_akhir = ($semester == 1) ? 'tanggal_akhir_semester_1' : 'tanggal_akhir_semester_2';
+    $res_ta = $conn->query("
+        SELECT $kolom_mulai AS tanggal_mulai, $kolom_akhir AS tanggal_akhir
+        FROM tahun_ajaran
+        WHERE status = 'aktif'
+        LIMIT 1
+    ");
+    if ($res_ta && $row_ta = $res_ta->fetch_assoc()) {
+        $tgl_mulai = $row_ta['tanggal_mulai'];
+        $tgl_akhir = $row_ta['tanggal_akhir'];
+    }
+}
+
+if (!$tgl_mulai) $tgl_mulai = '1970-01-01';
+if (!$tgl_akhir) $tgl_akhir = '2099-12-31';
+
 // Helper mapping rating
 function mapRating($status) {
     if (in_array($status, ['TM', 'MM', 'M'])) {
@@ -60,37 +105,27 @@ if ($res_guru) {
             $completed_count = $c_res ? (int)$c_res->fetch_assoc()['c'] : 0;
         }
         
-        // Hitung anak yang sudah punya minimal 1 penilaian checklist semester ini
+        // Hitung anak yang sudah punya minimal 1 penilaian checklist hari ini
         $anak_sudah_dinilai = 0;
         if ($id_kelas > 0) {
+            $today = date('Y-m-d');
             $p_res = $conn->query("
                 SELECT COUNT(DISTINCT id_anak) AS c
                 FROM penilaian
-                WHERE tipe = 'checklist' AND semester = $semester
+                WHERE tipe = 'checklist' AND tanggal = '$today'
                   AND id_anak IN (SELECT id FROM anak WHERE id_kelas = $id_kelas)
             ");
             $anak_sudah_dinilai = $p_res ? (int)$p_res->fetch_assoc()['c'] : 0;
         }
         
-        // Cek apakah guru sudah melapor siap raport
-        $raport_siap = false;
-        $laporan_catatan = '';
-        $laporan_waktu = '';
-        $l_res = $conn->query("
-            SELECT catatan, created_at FROM laporan_raport_siap
-            WHERE id_guru = $id_guru AND semester = $semester AND status = 'siap'
-            ORDER BY created_at DESC LIMIT 1
-        ");
-        if ($l_res && $l_res->num_rows > 0) {
-            $l_row = $l_res->fetch_assoc();
-            $raport_siap = true;
-            $laporan_catatan = $l_row['catatan'] ?? '';
-            $laporan_waktu = $l_row['created_at'] ?? '';
-        }
-        
         // Hitung persentase progress
         $progress = $student_count > 0 ? round(($anak_sudah_dinilai / $student_count) * 100) : 0;
-        $status = $raport_siap ? "Siap Raport" : ($progress >= 100 ? "Selesai" : "Belum");
+        
+        // Rapor siap otomatis jika seluruh siswa sudah dinilai (progress >= 100%)
+        $raport_siap = ($progress >= 100 && $student_count > 0);
+        $status = $raport_siap ? "Siap Rapor" : "Belum";
+        $laporan_catatan = '';
+        $laporan_waktu = '';
         
         $guru_list[] = [
             "id_kelas" => $id_kelas,
@@ -123,17 +158,14 @@ if ($res_anak) {
     while ($row = $res_anak->fetch_assoc()) {
         $anak_id = (int)$row['id'];
         
-        // Cari rating perkembangan terakhir dari penilaian_checklist
+        // Cari rating perkembangan terakhir dari penilaian_checklist semester ini
         $r_res = $conn->query("
             SELECT status FROM penilaian 
-            WHERE id_anak = $anak_id AND tipe = 'checklist'
+            WHERE id_anak = $anak_id AND tipe = 'checklist' AND semester = $semester
             ORDER BY id DESC LIMIT 1
         ");
         $db_status = $r_res && $r_res->num_rows > 0 ? $r_res->fetch_assoc()['status'] : '';
         $rating = mapRating($db_status);
-        
-        // Jika anak belum pernah dinilai, tampilkan tanda '-' saja (tidak ada fallback dummy)
-        // $rating sudah bernilai '-' dari mapRating jika tidak ada status
         
         $anak_list[] = [
             "id" => $anak_id,
@@ -149,12 +181,16 @@ if ($res_anak) {
 
 // 3. STATISTIK PERKEMBANGAN ASPEK
 $aspek_stats = [];
+
 // Aspek 1: Agama & Budi Pekerti
 $res_agama = $conn->query("
     SELECT COUNT(*) AS c FROM penilaian pc
     JOIN kegiatan_pembelajaran kg ON pc.id_kegiatan = kg.id
     JOIN tujuan_pembelajaran tp ON kg.id_tujuan = tp.id
-    WHERE tp.id_aspek = 1 AND pc.tipe = 'checklist' AND pc.status IN ('M', 'BSH', 'BSB')
+    WHERE tp.id_aspek = 1 
+      AND pc.tipe = 'checklist' 
+      AND pc.status IN ('M', 'BSH', 'BSB')
+      AND pc.semester = $semester
 ");
 $c_agama = $res_agama ? (int)$res_agama->fetch_assoc()['c'] : 0;
 
@@ -163,7 +199,10 @@ $res_jati = $conn->query("
     SELECT COUNT(*) AS c FROM penilaian pc
     JOIN kegiatan_pembelajaran kg ON pc.id_kegiatan = kg.id
     JOIN tujuan_pembelajaran tp ON kg.id_tujuan = tp.id
-    WHERE tp.id_aspek IN (2, 5) AND pc.tipe = 'checklist' AND pc.status IN ('M', 'BSH', 'BSB')
+    WHERE tp.id_aspek IN (2, 5) 
+      AND pc.tipe = 'checklist' 
+      AND pc.status IN ('M', 'BSH', 'BSB')
+      AND pc.semester = $semester
 ");
 $c_jati = $res_jati ? (int)$res_jati->fetch_assoc()['c'] : 0;
 
@@ -172,11 +211,12 @@ $res_steam = $conn->query("
     SELECT COUNT(*) AS c FROM penilaian pc
     JOIN kegiatan_pembelajaran kg ON pc.id_kegiatan = kg.id
     JOIN tujuan_pembelajaran tp ON kg.id_tujuan = tp.id
-    WHERE tp.id_aspek IN (3, 4, 6) AND pc.tipe = 'checklist' AND pc.status IN ('M', 'BSH', 'BSB')
+    WHERE tp.id_aspek IN (3, 4, 6) 
+      AND pc.tipe = 'checklist' 
+      AND pc.status IN ('M', 'BSH', 'BSB')
+      AND pc.semester = $semester
 ");
 $c_steam = $res_steam ? (int)$res_steam->fetch_assoc()['c'] : 0;
-
-// Tidak ada fallback dummy — tampilkan data asli dari database
 
 $aspek_stats = [
     "agama" => $c_agama,
@@ -186,19 +226,33 @@ $aspek_stats = [
 ];
 
 // 4. STATISTIK ABSENSI SEMESTER
-$res_hadir = $conn->query("SELECT COUNT(*) AS c FROM absensi WHERE status = 'Hadir'");
+$res_hadir = $conn->query("
+    SELECT COUNT(*) AS c FROM absensi ab
+    WHERE ab.status = 'Hadir'
+      AND ab.tanggal BETWEEN '$tgl_mulai' AND '$tgl_akhir'
+");
 $c_hadir = $res_hadir ? (int)$res_hadir->fetch_assoc()['c'] : 0;
 
-$res_sakit = $conn->query("SELECT COUNT(*) AS c FROM absensi WHERE status = 'Sakit'");
+$res_sakit = $conn->query("
+    SELECT COUNT(*) AS c FROM absensi ab
+    WHERE ab.status = 'Sakit'
+      AND ab.tanggal BETWEEN '$tgl_mulai' AND '$tgl_akhir'
+");
 $c_sakit = $res_sakit ? (int)$res_sakit->fetch_assoc()['c'] : 0;
 
-$res_izin = $conn->query("SELECT COUNT(*) AS c FROM absensi WHERE status = 'Izin'");
+$res_izin = $conn->query("
+    SELECT COUNT(*) AS c FROM absensi ab
+    WHERE ab.status = 'Izin'
+      AND ab.tanggal BETWEEN '$tgl_mulai' AND '$tgl_akhir'
+");
 $c_izin = $res_izin ? (int)$res_izin->fetch_assoc()['c'] : 0;
 
-$res_alpa = $conn->query("SELECT COUNT(*) AS c FROM absensi WHERE status = 'Alpa'");
+$res_alpa = $conn->query("
+    SELECT COUNT(*) AS c FROM absensi ab
+    WHERE ab.status = 'Alpa'
+      AND ab.tanggal BETWEEN '$tgl_mulai' AND '$tgl_akhir'
+");
 $c_alpa = $res_alpa ? (int)$res_alpa->fetch_assoc()['c'] : 0;
-
-// Tidak ada fallback dummy — tampilkan data asli dari database
 
 $absensi_stats = [
     "hadir" => $c_hadir,

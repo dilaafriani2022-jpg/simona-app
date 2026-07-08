@@ -40,15 +40,31 @@ if ($res_sekolah && $res_sekolah->num_rows > 0) {
     ];
 }
 
-// Convert logo to Base64 to embed it natively in Word HTML
-$logo_base64 = '';
-$logo_path = __DIR__ . '/../assets/logo.png';
-if (file_exists($logo_path)) {
-    $logo_data = @file_get_contents($logo_path);
-    if ($logo_data !== false) {
-        $logo_base64 = 'data:image/png;base64,' . base64_encode($logo_data);
+// ── EMBED LOGO AS MHTML MIME ATTACHMENT ─────────────────────────────────────────
+// We output MHTML (multipart/related) format so the logo is embedded as a proper
+// MIME binary part referenced via CID. MS Word — on ALL devices including mobile —
+// fully supports MHTML CID references. base64 data URIs inside <img src> are
+// silently ignored by Word, which causes the broken-image placeholder.
+$logo_raw  = '';   // raw binary content
+$logo_mime = 'image/png';
+$logo_cid  = 'logo@raport.monak'; // Content-ID used in HTML
+$logo_candidates = [
+    __DIR__ . '/../assets/logo.png',   // Flutter assets folder (primary)
+    __DIR__ . '/assets/logo.png',       // Backend assets copy
+];
+foreach ($logo_candidates as $logo_path) {
+    if (file_exists($logo_path)) {
+        $tmp = @file_get_contents($logo_path);
+        if ($tmp !== false && strlen($tmp) > 0) {
+            $logo_raw = $tmp;
+            // Detect MIME type
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $logo_mime = $finfo->buffer($logo_raw) ?: 'image/png';
+            break;
+        }
     }
 }
+$has_logo = ($logo_raw !== '');
 
 // 2. FETCH DATA ANAK & KELAS
 $anak = [];
@@ -160,11 +176,10 @@ if ($narasi['nama_guru'] === "-") {
 // 4. FETCH EKSTRAKURIKULER
 $ekskul_list = [];
 $stmt_ekskul = $conn->prepare("
-    SELECT se.*, e.nama AS nama_ekstrakurikuler
-    FROM anak_ekstrakurikuler se
-    JOIN ekstrakurikuler e ON se.id_ekstrakurikuler = e.id
-    WHERE se.id_anak = ? AND se.semester = ?
-    ORDER BY e.nama ASC
+    SELECT *
+    FROM ekstrakurikuler
+    WHERE id_anak = ? AND semester = ?
+    ORDER BY nama_ekstrakurikuler ASC
 ");
 $stmt_ekskul->bind_param("ii", $id_anak, $semester);
 $stmt_ekskul->execute();
@@ -326,11 +341,28 @@ $tanggal_cetak = date('d') . ' ' . [
     7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
 ][intval(date('m'))] . ' ' . date('Y');
 
-// 9. GENERATE WORD-COMPATIBLE HTML HEADER
-header("Content-Type: application/vnd.ms-word");
+$mhtml_boundary = 'MHTMLBoundary_' . md5(uniqid());
+
+// HTTP-level headers: tell client to download this as a .doc file.
+// MHTML content with .doc extension is opened correctly by Word/WPS on Android.
+header("Content-Type: application/msword");
 header("Content-Disposition: attachment; filename=\"Rapor_{$nama_anak_clean}_Semester_{$semester}.doc\"");
 header("Cache-Control: private, max-age=0, must-revalidate");
 header("Pragma: public");
+
+// --- Begin MHTML document (the entire file body is a MHTML message) ---
+echo "MIME-Version: 1.0\r\n";
+echo "Content-Type: multipart/related;\r\n";
+echo "\tboundary=\"$mhtml_boundary\";\r\n";
+echo "\ttype=\"text/html\"\r\n";
+echo "\r\n";
+// --- HTML part ---
+echo "--$mhtml_boundary\r\n";
+echo "Content-Type: text/html; charset=utf-8\r\n";
+echo "Content-Transfer-Encoding: 8bit\r\n";
+echo "Content-Location: file:///raport.html\r\n";
+echo "\r\n";
+// (HTML body follows via PHP close tag below)
 
 ?>
 <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
@@ -461,8 +493,8 @@ header("Pragma: public");
 <div style="font-family: 'Times New Roman', Times, serif;">
     <!-- Logo Sekolah -->
     <p style="text-align: center; margin-top: 10px; margin-bottom: 10px;">
-        <?php if (!empty($logo_base64)): ?>
-        <img src="<?php echo $logo_base64; ?>" width="100" height="100" style="display:inline-block;" alt="Logo Sekolah">
+        <?php if ($has_logo): ?>
+        <img src="cid:<?php echo $logo_cid; ?>" width="100" height="100" style="display:inline-block;" alt="Logo Sekolah">
         <?php else: ?>
         &nbsp;<br>&nbsp;<br>&nbsp;<br>&nbsp;<br>&nbsp;
         <?php endif; ?>
@@ -953,3 +985,20 @@ header("Pragma: public");
 
 </body>
 </html>
+<?php
+// --- End of HTML Part ---
+// Part 2: Logo image as MIME attachment (only if we have a logo)
+if ($has_logo) {
+    echo "\r\n--$mhtml_boundary\r\n";
+    echo "Content-Type: $logo_mime\r\n";
+    echo "Content-Transfer-Encoding: base64\r\n";
+    echo "Content-ID: <$logo_cid>\r\n";
+    echo "Content-Location: logo.png\r\n";
+    echo "\r\n";
+    // Output base64 of the image, wrapped at 76 chars (RFC 2045)
+    echo chunk_split(base64_encode($logo_raw), 76, "\r\n");
+    echo "\r\n";
+}
+// --- Close MHTML boundary ---
+echo "--$mhtml_boundary--\r\n";
+?>

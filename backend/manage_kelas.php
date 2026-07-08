@@ -85,14 +85,14 @@ elseif ($method == 'POST') {
             // 3. Set id_kelas = NULL untuk tabel refleksi
             $conn->query("UPDATE refleksi SET id_kelas = NULL WHERE id_kelas = $id");
 
-            // 4. Hapus jadwal kelas
-            $conn->query("DELETE FROM jadwal_kelas WHERE id_kelas = $id");
-
-            // 5. Hapus RPPH
-            $conn->query("DELETE FROM rpph WHERE id_kelas = $id");
-
-            // 6. Hapus RPPM
+            // 4. Hapus RPPM
             $conn->query("DELETE FROM rppm WHERE id_kelas = $id");
+
+            // 5. Hapus Prosem
+            $conn->query("DELETE FROM prosem WHERE id_kelas = $id");
+
+            // 6. Hapus Modul Ajar
+            $conn->query("DELETE FROM modul_ajar WHERE id_kelas = $id");
 
             // 7. Hapus kelas
             $sql = "DELETE FROM kelas WHERE id = $id";

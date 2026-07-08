@@ -392,19 +392,23 @@ class _AbsensiScreenState extends State<AbsensiScreen>
             const SizedBox(height: 14),
 
             // ── Summary chips ─────────────────────────────────────────
-            Row(children: [
-              _summaryChip('$total', 'Anak', Icons.people_rounded),
-              const SizedBox(width: 8),
-              ..._statusCfg.entries.map((e) => Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: _summaryChip(
-                  '${summary[e.key] ?? 0}',
-                  e.key,
-                  e.value.icon,
-                  color: e.value.color,
-                ),
-              )),
-            ]),
+             SingleChildScrollView(
+               scrollDirection: Axis.horizontal,
+               physics: const BouncingScrollPhysics(),
+               child: Row(children: [
+                 _summaryChip('$total', 'Anak', Icons.people_rounded),
+                 const SizedBox(width: 8),
+                 ..._statusCfg.entries.map((e) => Padding(
+                   padding: const EdgeInsets.only(right: 8),
+                   child: _summaryChip(
+                     '${summary[e.key] ?? 0}',
+                     e.key,
+                     e.value.icon,
+                     color: e.value.color,
+                   ),
+                 )),
+               ]),
+             ),
           ]),
         ),
       ]),

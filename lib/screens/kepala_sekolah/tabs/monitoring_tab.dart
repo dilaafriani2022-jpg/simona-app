@@ -4,7 +4,7 @@ import '../../guru/penilaian_checklist_screen.dart';
 import '../../guru/anekdot_screen.dart';
 import '../../guru/karya_screen.dart';
 import '../../guru/rekap_raport_screen.dart';
-import '../../guru/jadwal_screen.dart';
+import '../../guru/rencana_belajar_screen.dart';
 
 class MonitoringTab extends StatefulWidget {
   final bool isLoading;
@@ -73,8 +73,9 @@ class _MonitoringTabState extends State<MonitoringTab> {
 
   // ── Monitoring Guru
   Widget _buildMonitoringGuruTab() {
+    final double bottomPad = MediaQuery.of(context).padding.bottom + 96;
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPad),
       itemCount: widget.guruMonitoring.length + 1,
       itemBuilder: (context, index) {
         if (index == 0) {
@@ -96,12 +97,12 @@ class _MonitoringTabState extends State<MonitoringTab> {
 
         final g = widget.guruMonitoring[index - 1];
         final String name = g['nama_guru'] ?? '-';
-        final int murid = g['student_count'] ?? 0;
+        final int murid = int.tryParse(g['student_count']?.toString() ?? '') ?? 0;
         final String status = g['status'] ?? 'Belum';
         final bool raportSiap = g['raport_siap'] == true;
         final bool isDone = status == 'Selesai' || raportSiap;
-        final int anakDinilai = g['anak_sudah_dinilai'] ?? 0;
-        final int progress = g['progress_percent'] ?? 0;
+        final int anakDinilai = int.tryParse(g['anak_sudah_dinilai']?.toString() ?? '') ?? 0;
+        final int progress = int.tryParse(g['progress_percent']?.toString() ?? '') ?? 0;
         final String catatan = g['laporan_catatan'] ?? '';
         final String waktu = g['laporan_waktu'] ?? '';
 
@@ -220,10 +221,10 @@ class _MonitoringTabState extends State<MonitoringTab> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) {
-        final progress = guru['progress_percent'] ?? 0;
-        final studentCount = guru['student_count'] ?? 0;
+        final progress = int.tryParse(guru['progress_percent']?.toString() ?? '') ?? 0;
+        final studentCount = int.tryParse(guru['student_count']?.toString() ?? '') ?? 0;
         // Pakai anak_sudah_dinilai agar konsisten dengan progress bar
-        final anakSudahDinilai = guru['anak_sudah_dinilai'] ?? guru['completed_count'] ?? 0;
+        final anakSudahDinilai = int.tryParse((guru['anak_sudah_dinilai'] ?? guru['completed_count'])?.toString() ?? '') ?? 0;
 
         return DraggableScrollableSheet(
           expand: false,
@@ -302,7 +303,7 @@ class _MonitoringTabState extends State<MonitoringTab> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => JadwalScreen(
+                        builder: (_) => RencanaBelajarScreen(
                           idGuru: idGuru,
                           idKelas: idKelas,
                           isReadOnly: true,
@@ -473,7 +474,7 @@ class _MonitoringTabState extends State<MonitoringTab> {
           child: filtered.isEmpty
               ? Center(child: Text("Anak tidak ditemukan", style: TextStyle(color: Colors.blueGrey.shade400)))
               : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: EdgeInsets.fromLTRB(16, 0, 16, MediaQuery.of(context).padding.bottom + 96),
                   itemCount: filtered.length,
                   itemBuilder: (context, index) {
                     final s = filtered[index];
@@ -554,6 +555,7 @@ class _MonitoringTabState extends State<MonitoringTab> {
 
   void _showChildMonitoringOptions(Map<String, dynamic> anak) {
     final int idKelas = int.tryParse(anak['id_kelas']?.toString() ?? '0') ?? 0;
+    final int idAnak  = int.tryParse(anak['id']?.toString() ?? '0') ?? 0;
     final String namaAnak = anak['nama_anak'] ?? '';
     final String namaKelas = anak['nama_kelas'] ?? '-';
 
@@ -605,6 +607,7 @@ class _MonitoringTabState extends State<MonitoringTab> {
                         builder: (_) => PenilaianChecklistScreen(
                           idGuru: idGuru,
                           idKelas: idKelas,
+                          idAnak: idAnak > 0 ? idAnak : null,
                           isReadOnly: true,
                         ),
                       ),
@@ -626,6 +629,7 @@ class _MonitoringTabState extends State<MonitoringTab> {
                         builder: (_) => AnekdotScreen(
                           idGuru: idGuru,
                           idKelas: idKelas,
+                          idAnak: idAnak > 0 ? idAnak : null,
                           isReadOnly: true,
                         ),
                       ),
@@ -647,6 +651,7 @@ class _MonitoringTabState extends State<MonitoringTab> {
                         builder: (_) => KaryaScreen(
                           idGuru: idGuru,
                           idKelas: idKelas,
+                          idAnak: idAnak > 0 ? idAnak : null,
                           isReadOnly: true,
                         ),
                       ),
@@ -770,7 +775,7 @@ class _MonitoringTabState extends State<MonitoringTab> {
             itemBuilder: (context, index) {
               final g = widget.guruMonitoring[index];
               final String name = g['nama_guru'] ?? '-';
-              final progress = g['progress_percent'] ?? 0;
+              final progress = int.tryParse(g['progress_percent']?.toString() ?? '') ?? 0;
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),

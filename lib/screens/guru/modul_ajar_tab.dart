@@ -19,7 +19,7 @@ class _ModulAjarTabState extends State<ModulAjarTab> {
   static const Color _surface = Colors.white;
   static const Color _border = Color(0xFFF0E8DF);
 
-  int _selectedWeek = 3;
+  int _selectedWeek = 1;
   bool _isLoading = true;
   Map<String, dynamic>? _modulData;
   Map<String, dynamic>? _linkedProsem;
@@ -60,10 +60,34 @@ class _ModulAjarTabState extends State<ModulAjarTab> {
     _loadWeekData();
   }
 
+  String _getKelompokLabel(String? namaKelas) {
+    if (namaKelas == null) return 'Kelompok B';
+    if (namaKelas.toLowerCase().contains('kelompok a')) {
+      return 'Kelompok A';
+    } else if (namaKelas.toLowerCase().contains('kelompok b')) {
+      return 'Kelompok B';
+    }
+    return namaKelas;
+  }
+
   Future<void> _loadWeekData() async {
     setState(() => _isLoading = true);
     final idKelas = widget.idKelas ?? 2;
     try {
+      // 0. Fetch class details to set default Kelompok
+      String? className;
+      final classRes = await ApiService.fetch('manage_kelas.php');
+      if (classRes['status'] == 'success' && classRes['data'] is List) {
+        final classes = classRes['data'] as List;
+        final matchingClass = classes.firstWhere(
+          (c) => c['id'].toString() == idKelas.toString(),
+          orElse: () => null,
+        );
+        if (matchingClass != null) {
+          className = matchingClass['nama_kelas'];
+        }
+      }
+
       // 1. Fetch linked Prosem data
       final prosemRes = await ApiService.fetch('manage_prosem.php?id_kelas=$idKelas&semester=1&minggu_ke=$_selectedWeek');
       if (prosemRes['status'] == 'success' && prosemRes['data'] != null) {
@@ -82,15 +106,26 @@ class _ModulAjarTabState extends State<ModulAjarTab> {
       final modulRes = await ApiService.fetch('manage_modul_ajar.php?id_kelas=$idKelas&semester=1&minggu_ke=$_selectedWeek');
       if (modulRes['status'] == 'success' && modulRes['data'] != null) {
         _modulData = modulRes['data'];
-        _kelompokCtrl.text = _modulData!['kelompok'] ?? 'Kelompok B';
+        
+        // Always force kelompok to match the actual class
+        _kelompokCtrl.text = _getKelompokLabel(className);
         _jenjangCtrl.text = _modulData!['jenjang'] ?? 'TK';
         _sekolahCtrl.text = _modulData!['nama_sekolah'] ?? 'TK Negeri 2 Bengkalis';
         _alokasiCtrl.text = _modulData!['durasi'] ?? '7.30 - 10.40 WIB';
         _siswaCtrl.text = _modulData!['jumlah_anak'] ?? '17 Anak';
         _modelCtrl.text = _modulData!['model_pembelajaran'] ?? 'Tatap Muka';
-        if (_modulData!['topik'] != null) _topikCtrl.text = _modulData!['topik'];
-        if (_modulData!['sub_topik'] != null) _subTopikCtrl.text = _modulData!['sub_topik'];
-        if (_modulData!['sub_sub_topik'] != null) _subSubTopikCtrl.text = _modulData!['sub_sub_topik'];
+
+        // Prioritize Prosem over saved Modul Ajar data for topic identity if Prosem is available
+        if (_linkedProsem != null) {
+          _topikCtrl.text = _linkedProsem!['topik'] ?? '';
+          _subTopikCtrl.text = _linkedProsem!['sub_topik'] ?? '';
+          _subSubTopikCtrl.text = _linkedProsem!['sub_sub_topik'] ?? '';
+        } else {
+          if (_modulData!['topik'] != null) _topikCtrl.text = _modulData!['topik'];
+          if (_modulData!['sub_topik'] != null) _subTopikCtrl.text = _modulData!['sub_topik'];
+          if (_modulData!['sub_sub_topik'] != null) _subSubTopikCtrl.text = _modulData!['sub_sub_topik'];
+        }
+
         _atpCtrl.text = _modulData!['atp'] ?? '';
         _cpCtrl.text = _modulData!['elemen_cp'] ?? '';
         _kataKunciCtrl.text = _modulData!['kata_kunci'] ?? '';
@@ -103,12 +138,13 @@ class _ModulAjarTabState extends State<ModulAjarTab> {
         _selasaCtrl.text = _modulData!['kegiatan_selasa'] ?? '';
         _rabuCtrl.text = _modulData!['kegiatan_rabu'] ?? '';
         _kamisCtrl.text = _modulData!['kegiatan_kamis'] ?? '';
-        _jumatCtrl.text = _modulData!['kegiatan_jumat'] ?? '';
+        _jumatCtrl.text = _jumatCtrl.text = _modulData!['kegiatan_jumat'] ?? '';
         _sabtuCtrl.text = _modulData!['kegiatan_sabtu'] ?? '';
         _penutupCtrl.text = _modulData!['kegiatan_penutup'] ?? '';
         _asesmenCtrl.text = _modulData!['teknik_asesmen'] ?? '';
       } else {
         _modulData = null;
+        _kelompokCtrl.text = _getKelompokLabel(className);
         _atpCtrl.clear();
         _cpCtrl.clear();
         _kataKunciCtrl.clear();

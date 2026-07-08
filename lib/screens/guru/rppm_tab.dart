@@ -19,7 +19,7 @@ class _RppmTabState extends State<RppmTab> {
   static const Color _surface = Colors.white;
   static const Color _border = Color(0xFFF0E8DF);
 
-  int _selectedWeek = 3;
+  int _selectedWeek = 1;
   bool _isLoading = true;
   Map<String, dynamic>? _rppmData;
   Map<String, dynamic>? _linkedProsem;
@@ -44,10 +44,34 @@ class _RppmTabState extends State<RppmTab> {
     _loadWeekData();
   }
 
+  String _getKelompokLabel(String? namaKelas) {
+    if (namaKelas == null) return 'Kelompok B (5-6 Tahun)';
+    if (namaKelas.toLowerCase().contains('kelompok a')) {
+      return 'Kelompok A (4-5 Tahun)';
+    } else if (namaKelas.toLowerCase().contains('kelompok b')) {
+      return 'Kelompok B (5-6 Tahun)';
+    }
+    return namaKelas;
+  }
+
   Future<void> _loadWeekData() async {
     setState(() => _isLoading = true);
     final idKelas = widget.idKelas ?? 2;
     try {
+      // 0. Fetch class details to set default Kelompok / Usia
+      String? className;
+      final classRes = await ApiService.fetch('manage_kelas.php');
+      if (classRes['status'] == 'success' && classRes['data'] is List) {
+        final classes = classRes['data'] as List;
+        final matchingClass = classes.firstWhere(
+          (c) => c['id'].toString() == idKelas.toString(),
+          orElse: () => null,
+        );
+        if (matchingClass != null) {
+          className = matchingClass['nama_kelas'];
+        }
+      }
+
       // 1. Fetch linked Prosem data
       final prosemRes = await ApiService.fetch('manage_prosem.php?id_kelas=$idKelas&semester=1&minggu_ke=$_selectedWeek');
       if (prosemRes['status'] == 'success' && prosemRes['data'] != null) {
@@ -66,10 +90,21 @@ class _RppmTabState extends State<RppmTab> {
       final rppmRes = await ApiService.fetch('manage_rpp.php?type=rppm&id_kelas=$idKelas&semester=1&minggu_ke=$_selectedWeek');
       if (rppmRes['status'] == 'success' && rppmRes['data'] != null) {
         _rppmData = rppmRes['data'];
-        _kelompokCtrl.text = _rppmData!['kelompok'] ?? 'Kelompok B (5-6 Tahun)';
-        if (_rppmData!['bulan'] != null) _bulanCtrl.text = _rppmData!['bulan'];
-        if (_rppmData!['tema'] != null) _topikCtrl.text = _rppmData!['tema'];
-        if (_rppmData!['sub_tema'] != null) _subTopikCtrl.text = _rppmData!['sub_tema'];
+        
+        // Always force kelompok to match the actual class
+        _kelompokCtrl.text = _getKelompokLabel(className);
+
+        // Prioritize Prosem over saved RPPM data for theme identity if Prosem is available
+        if (_linkedProsem != null) {
+          _bulanCtrl.text = _linkedProsem!['bulan'] ?? '';
+          _topikCtrl.text = _linkedProsem!['topik'] ?? '';
+          _subTopikCtrl.text = _linkedProsem!['sub_topik'] ?? '';
+        } else {
+          if (_rppmData!['bulan'] != null) _bulanCtrl.text = _rppmData!['bulan'];
+          if (_rppmData!['tema'] != null) _topikCtrl.text = _rppmData!['tema'];
+          if (_rppmData!['sub_tema'] != null) _subTopikCtrl.text = _rppmData!['sub_tema'];
+        }
+
         _tujuanCtrl.text = _rppmData!['tujuan_kegiatan'] ?? '';
         _seninCtrl.text = _rppmData!['kegiatan_senin'] ?? '';
         _selasaCtrl.text = _rppmData!['kegiatan_selasa'] ?? '';
@@ -80,6 +115,7 @@ class _RppmTabState extends State<RppmTab> {
         _refleksiCtrl.text = _rppmData!['refleksi_guru'] ?? '';
       } else {
         _rppmData = null;
+        _kelompokCtrl.text = _getKelompokLabel(className);
         _tujuanCtrl.clear();
         _seninCtrl.clear();
         _selasaCtrl.clear();

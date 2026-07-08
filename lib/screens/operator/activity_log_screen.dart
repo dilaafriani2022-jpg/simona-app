@@ -97,6 +97,15 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
       _page++;
       _applyFilter();
     });
+
+    // Auto-load halaman berikutnya jika hasil filter terlalu sedikit
+    // (kurang dari 10 item) dan masih ada data lagi di server.
+    // Ini mencegah spinner berputar selamanya karena daftar tidak bisa di-scroll.
+    if (_hasMore && _filtered.length < 10 && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadPage();
+      });
+    }
   }
 
   void _applyFilter() {

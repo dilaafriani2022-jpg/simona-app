@@ -47,6 +47,96 @@ function nilaiStatus(string $status): int {
     };
 }
 
+// Helper: hitung modus/skala paling banyak untuk 3 aspek raport
+function getDominantRatings($conn, int $id_anak, int $semester, int $bulan): array {
+    if ($bulan == 6) {
+        $min_minggu = 1;
+        $max_minggu = 18;
+    } else {
+        $range = rentangMinggu($bulan);
+        $min_minggu = $range['min'];
+        $max_minggu = $range['max'];
+    }
+
+    $counts = [
+        "agama" => ["TM" => 0, "MM" => 0, "M" => 0, "total" => 0],
+        "jati_diri" => ["TM" => 0, "MM" => 0, "M" => 0, "total" => 0],
+        "steam" => ["TM" => 0, "MM" => 0, "M" => 0, "total" => 0]
+    ];
+
+    $sql = "
+        SELECT tp.id_aspek, pc.status, COUNT(*) AS c 
+        FROM penilaian pc
+        JOIN kegiatan_pembelajaran kg ON pc.id_kegiatan = kg.id
+        JOIN tujuan_pembelajaran tp ON kg.id_tujuan = tp.id
+        WHERE pc.id_anak = $id_anak 
+          AND pc.semester = $semester 
+          AND pc.tipe = 'checklist'
+          AND pc.minggu_ke BETWEEN $min_minggu AND $max_minggu
+        GROUP BY tp.id_aspek, pc.status
+    ";
+    $res_dominant = $conn->query($sql);
+    if ($res_dominant) {
+        while ($row = $res_dominant->fetch_assoc()) {
+            $asp = (int)$row['id_aspek'];
+            $status = $row['status'];
+            $c = (int)$row['c'];
+            
+            $group = "steam";
+            if ($asp == 1) {
+                $group = "agama";
+            } elseif ($asp == 2 || $asp == 5) {
+                $group = "jati_diri";
+            } elseif ($asp == 3 || $asp == 4 || $asp == 6) {
+                $group = "steam";
+            }
+            
+            $scale = "M";
+            if ($status === 'TM' || $status === 'BB') {
+                $scale = "TM";
+            } elseif ($status === 'MM' || $status === 'MB') {
+                $scale = "MM";
+            } elseif ($status === 'M' || $status === 'BSH' || $status === 'BSB') {
+                $scale = "M";
+            }
+            
+            $counts[$group][$scale] += $c;
+            $counts[$group]["total"] += $c;
+        }
+    }
+
+    $dominant_ratings = [];
+    foreach ($counts as $group => $data) {
+        $total = $data["total"];
+        $dominant = "-";
+        $dominant_count = 0;
+        
+        if ($total > 0) {
+            $max_val = max($data["TM"], $data["MM"], $data["M"]);
+            if ($max_val > 0) {
+                if ($max_val == $data["M"]) {
+                    $dominant = "M";
+                } elseif ($max_val == $data["MM"]) {
+                    $dominant = "MM";
+                } else {
+                    $dominant = "TM";
+                }
+                $dominant_count = $max_val;
+            }
+        }
+        
+        $dominant_ratings[$group] = [
+            "dominant" => $dominant,
+            "count" => $dominant_count,
+            "total" => $total,
+            "TM" => $data["TM"],
+            "MM" => $data["MM"],
+            "M" => $data["M"]
+        ];
+    }
+    return $dominant_ratings;
+}
+
 // ── Auto-migration: pastikan tabel rekap_aspek_bulanan & rekap_penilaian_bulanan ada ──────────────────
 $conn->query("
     CREATE TABLE IF NOT EXISTS rekap_aspek_bulanan (
@@ -239,6 +329,7 @@ if ($method === 'GET') {
             
             if ($res && $res->num_rows > 0) {
                 $data = $res->fetch_assoc();
+                $data['dominant_ratings'] = getDominantRatings($conn, $id_anak, $semester, $bulan);
                 respond(["status" => "success", "data" => $data]);
             }
         }
@@ -399,7 +490,8 @@ if ($method === 'GET') {
                     "narasi_literasi_steam" => $draft_literasi,
                     "nama_guru" => $guru_name,
                     "nip_guru" => $guru_nip,
-                    "is_draft" => true
+                    "is_draft" => true,
+                    "dominant_ratings" => getDominantRatings($conn, $id_anak, $semester, $bulan)
                 ]
             ]);
     }

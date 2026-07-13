@@ -10,7 +10,9 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../services/api_service.dart';
+import '../../utils/file_download_helper.dart';
 
 // ── Colors ─────────────────────────────────────────────────────────────
 const Color _primary = Color(0xFFC17B2F);
@@ -1692,7 +1694,20 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
       final pdfBytes = await doc.save();
       final filename = 'Rapor_${name.replaceAll(' ', '_')}_Semester$_semester.pdf';
 
-      if (saveDirectly) {
+      if (kIsWeb) {
+        await downloadFile(pdfBytes, filename);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Rapor berhasil diunduh ke folder download browser Anda.'),
+              backgroundColor: Colors.green.shade700,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }
+      } else if (saveDirectly) {
         final filePath = await _saveFileToDevice(pdfBytes, filename);
         if (filePath != null) {
           if (mounted) {
@@ -1762,7 +1777,20 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final filename = 'Rapor_${name.replaceAll(' ', '_')}_Semester$_semester.doc';
-        if (saveDirectly) {
+        if (kIsWeb) {
+          await downloadFile(response.bodyBytes, filename);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Rapor Word berhasil diunduh ke folder download browser Anda.'),
+                backgroundColor: Colors.green.shade700,
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 4),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            );
+          }
+        } else if (saveDirectly) {
           final filePath = await _saveFileToDevice(response.bodyBytes, filename);
           if (filePath != null) {
             if (mounted) {
@@ -1831,7 +1859,7 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
   Future<String?> _saveFileToDevice(Uint8List bytes, String filename) async {
     try {
       Directory? dir;
-      if (Platform.isAndroid) {
+      if (!kIsWeb && Platform.isAndroid) {
         // Try direct public Download folder
         final publicDownloadDir = Directory('/storage/emulated/0/Download');
         if (await publicDownloadDir.exists()) {
@@ -1842,7 +1870,7 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
             dir = await getExternalStorageDirectory();
           }
         }
-      } else if (Platform.isIOS) {
+      } else if (!kIsWeb && Platform.isIOS) {
         dir = await getApplicationDocumentsDirectory();
       }
 
@@ -2193,6 +2221,9 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
           _buildIdentitasCard(),
           const SizedBox(height: 16),
 
+          _buildDominantRatingsCard(),
+          const SizedBox(height: 16),
+
           _buildAspekCard(),
           const SizedBox(height: 16),
 
@@ -2340,6 +2371,123 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
         Text(
           content,
           style: GoogleFonts.poppins(color: Colors.grey.shade700, fontSize: 12, height: 1.5),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDominantRatingsCard() {
+    final Map<String, dynamic>? ratings = _narasiData['dominant_ratings'] is Map
+        ? Map<String, dynamic>.from(_narasiData['dominant_ratings'])
+        : null;
+
+    if (ratings == null || ratings.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.analytics_rounded, color: Color(0xFF059669), size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Analisis Capaian Terbanyak Bulan Ini',
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1E293B),
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Berdasarkan seluruh checklist mingguan untuk bulan terpilih',
+            style: GoogleFonts.poppins(fontSize: 10, color: _slate),
+          ),
+          const Divider(height: 20, color: Color(0xFFE2E8F0)),
+          _dominantRatingRow('Agama & Budi Pekerti', ratings['agama']),
+          const SizedBox(height: 12),
+          _dominantRatingRow('Jati Diri', ratings['jati_diri']),
+          const SizedBox(height: 12),
+          _dominantRatingRow('Dasar Literasi & STEAM', ratings['steam']),
+        ],
+      ),
+    );
+  }
+
+  Widget _dominantRatingRow(String title, Map<String, dynamic>? info) {
+    if (info == null) return const SizedBox.shrink();
+
+    final String dominant = info['dominant']?.toString() ?? '-';
+    final int count = int.tryParse(info['count']?.toString() ?? '0') ?? 0;
+    final int total = int.tryParse(info['total']?.toString() ?? '0') ?? 0;
+
+    Color badgeBg = Colors.grey.shade100;
+    Color badgeText = Colors.grey.shade600;
+    String label = 'Belum Dinilai';
+
+    if (dominant == 'M') {
+      badgeBg = const Color(0xFFD1FAE5);
+      badgeText = const Color(0xFF065F46);
+      label = 'Muncul (M)';
+    } else if (dominant == 'MM') {
+      badgeBg = const Color(0xFFFEF3C7);
+      badgeText = const Color(0xFF92400E);
+      label = 'Mulai Muncul (MM)';
+    } else if (dominant == 'TM') {
+      badgeBg = const Color(0xFFFEE2E2);
+      badgeText = const Color(0xFF991B1B);
+      label = 'Tidak Muncul (TM)';
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          flex: 4,
+          child: Text(
+            title,
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF334155),
+              fontSize: 12,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: badgeBg,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.bold,
+              color: badgeText,
+              fontSize: 10.5,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          total > 0 ? '$count/$total kali' : '-',
+          style: GoogleFonts.poppins(
+            fontSize: 11,
+            color: Colors.grey.shade500,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );

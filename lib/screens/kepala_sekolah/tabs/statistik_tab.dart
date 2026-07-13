@@ -1,13 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class StatistikTab extends StatelessWidget {
   final Map<String, dynamic> aspekStats;
   final Map<String, dynamic> absensiStats;
+  final int selectedSemester;
+  final int selectedMonth;
+  final int selectedKelasId;
+  final List<dynamic> kelasList;
+  final ValueChanged<int> onMonthChanged;
+  final ValueChanged<int> onSemesterChanged;
+  final ValueChanged<int> onKelasChanged;
 
   const StatistikTab({
     super.key,
     required this.aspekStats,
     required this.absensiStats,
+    required this.selectedSemester,
+    required this.selectedMonth,
+    required this.selectedKelasId,
+    required this.kelasList,
+    required this.onMonthChanged,
+    required this.onSemesterChanged,
+    required this.onKelasChanged,
   });
 
   // ── Palet ────────────────────────────────────────────────────────────────
@@ -15,22 +30,32 @@ class StatistikTab extends StatelessWidget {
   static const Color _gold    = Color(0xFFD4A853);
   static const Color _cream   = Color(0xFFFBF8F3);
   static const Color _textDark = Color(0xFF1C1C2E);
-  static const Color _textSub  = Color(0xFF8A8AAA);
   static const Color _border   = Color(0xFFEEEAE0);
+
+  // Status Colors
+  static const Color _colorM  = Color(0xFF10B981); // Green for Muncul
+  static const Color _colorMM = Color(0xFFF59E0B); // Amber for Mulai Muncul
+  static const Color _colorTM = Color(0xFFEF4444); // Red for Tidak Muncul
 
   @override
   Widget build(BuildContext context) {
     final double bottomPadding = MediaQuery.of(context).padding.bottom + 96;
-    final int agama = int.tryParse(aspekStats['agama']?.toString() ?? '') ?? 0;
-    final int jati  = int.tryParse(aspekStats['jati_diri']?.toString() ?? '') ?? 0;
-    final int steam = int.tryParse(aspekStats['steam']?.toString() ?? '') ?? 0;
-    final int avg   = ((agama + jati + steam) / 3).round();
 
-    final int hadir  = int.tryParse(absensiStats['hadir']?.toString() ?? '') ?? 0;
-    final int sakit  = int.tryParse(absensiStats['sakit']?.toString() ?? '') ?? 0;
-    final int izin   = int.tryParse(absensiStats['izin']?.toString() ?? '') ?? 0;
-    final int alpa   = int.tryParse(absensiStats['alpa']?.toString() ?? '') ?? 0;
-    final int total  = hadir + sakit + izin + alpa;
+    // Safely parse aspect ratings
+    final Map<String, int> rAgama = _parseRatingCounts(aspekStats['agama']);
+    final Map<String, int> rJati  = _parseRatingCounts(aspekStats['jati_diri']);
+    final Map<String, int> rSteam = _parseRatingCounts(aspekStats['steam']);
+
+    final int totalAgama = rAgama['M']! + rAgama['MM']! + rAgama['TM']!;
+    final int totalJati  = rJati['M']! + rJati['MM']! + rJati['TM']!;
+    final int totalSteam = rSteam['M']! + rSteam['MM']! + rSteam['TM']!;
+
+    // Safely parse attendance
+    final int hadir = int.tryParse(absensiStats['hadir']?.toString() ?? '0') ?? 0;
+    final int sakit = int.tryParse(absensiStats['sakit']?.toString() ?? '0') ?? 0;
+    final int izin  = int.tryParse(absensiStats['izin']?.toString() ?? '0') ?? 0;
+    final int alpa  = int.tryParse(absensiStats['alpa']?.toString() ?? '0') ?? 0;
+    final int totalAbsensi = hadir + sakit + izin + alpa;
 
     return Container(
       color: _cream,
@@ -39,27 +64,33 @@ class StatistikTab extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Page Header ───────────────────────────────────────────────
+            // Header
             _buildPageHeader(),
 
+            // Filter Section (Semester & Bulan)
+            _buildFilterSection(context),
+
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Aspek Perkembangan ────────────────────────────────
-                  _buildSectionLabel('Perkembangan Aspek Anak',
-                      Icons.trending_up_rounded, const Color(0xFF6366F1)),
-                  const SizedBox(height: 14),
-                  _buildAspekCard(agama, jati, steam, avg),
+                  const SizedBox(height: 10),
+                  // Section 1: Aspek Perkembangan (TM, MM, M)
+                  _buildSectionLabel('Penilaian Aspek Perkembangan', Icons.analytics_rounded, const Color(0xFF6366F1)),
+                  const SizedBox(height: 12),
+                  _buildAspekCard('Nilai Agama & Budi Pekerti', rAgama, totalAgama, Icons.volunteer_activism_rounded, const Color(0xFF10B981)),
+                  const SizedBox(height: 16),
+                  _buildAspekCard('Jati Diri', rJati, totalJati, Icons.self_improvement_rounded, const Color(0xFF3B82F6)),
+                  const SizedBox(height: 16),
+                  _buildAspekCard('Dasar Literasi & STEAM', rSteam, totalSteam, Icons.science_rounded, const Color(0xFFD97706)),
 
                   const SizedBox(height: 28),
 
-                  // ── Kehadiran ─────────────────────────────────────────
-                  _buildSectionLabel('Statistik Kehadiran Anak',
-                      Icons.event_available_rounded, const Color(0xFF059669)),
-                  const SizedBox(height: 14),
-                  _buildKehadiranCard(hadir, sakit, izin, alpa, total),
+                  // Section 2: Kehadiran
+                  _buildSectionLabel('Statistik Kehadiran Anak', Icons.event_available_rounded, const Color(0xFF059669)),
+                  const SizedBox(height: 12),
+                  _buildKehadiranCard(hadir, sakit, izin, alpa, totalAbsensi),
 
                   SizedBox(height: bottomPadding),
                 ],
@@ -69,6 +100,20 @@ class StatistikTab extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // Parses counts safely
+  Map<String, int> _parseRatingCounts(dynamic raw) {
+    if (raw is Map) {
+      return {
+        'TM': int.tryParse(raw['TM']?.toString() ?? '0') ?? 0,
+        'MM': int.tryParse(raw['MM']?.toString() ?? '0') ?? 0,
+        'M': int.tryParse(raw['M']?.toString() ?? '0') ?? 0,
+      };
+    }
+    // Fallback if legacy integer value is returned
+    final val = int.tryParse(raw?.toString() ?? '0') ?? 0;
+    return {'TM': 0, 'MM': 0, 'M': val};
   }
 
   // ── Page Header (gradient) ────────────────────────────────────────────────
@@ -85,7 +130,7 @@ class StatistikTab extends StatelessWidget {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(22, 20, 22, 28),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
           child: Row(
             children: [
               Container(
@@ -95,34 +140,176 @@ class StatistikTab extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: _gold.withValues(alpha: 0.3)),
                 ),
-                child: const Icon(Icons.bar_chart_rounded, color: _gold, size: 22),
+                child: const Icon(Icons.bar_chart_rounded, color: _gold, size: 24),
               ),
               const SizedBox(width: 16),
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Statistik Sekolah',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Statistik Perkembangan',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    'Ringkasan data perkembangan & kehadiran',
-                    style: TextStyle(
-                      color: Colors.white54,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
+                    const SizedBox(height: 2),
+                    Text(
+                      'Monitoring rekap penilaian & kehadiran murid',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white70,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w400,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // ── Filter Dropdowns (Semester, Bulan, & Kelas) ──────────────────────────
+  Widget _buildFilterSection(BuildContext context) {
+    final monthsMap = _getMonthsForSemester(selectedSemester);
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Periode & Kelas Pemantauan',
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF475569),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              // Dropdown Semester
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      value: selectedSemester,
+                      isExpanded: true,
+                      icon: const Icon(Icons.arrow_drop_down_rounded),
+                      onChanged: (val) {
+                        if (val != null) {
+                          onSemesterChanged(val);
+                          onMonthChanged(0); // Reset to all months
+                        }
+                      },
+                      items: const [
+                        DropdownMenuItem(value: 1, child: Text('Semester 1 (Ganjil)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
+                        DropdownMenuItem(value: 2, child: Text('Semester 2 (Genap)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              // Dropdown Bulan
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      value: selectedMonth,
+                      isExpanded: true,
+                      icon: const Icon(Icons.arrow_drop_down_rounded),
+                      onChanged: (val) {
+                        if (val != null) {
+                          onMonthChanged(val);
+                        }
+                      },
+                      items: monthsMap.entries.map((e) {
+                        return DropdownMenuItem<int>(
+                          value: e.key,
+                          child: Text(
+                            e.value,
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Dropdown Filter Kelas
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                value: selectedKelasId,
+                isExpanded: true,
+                icon: const Icon(Icons.arrow_drop_down_rounded),
+                onChanged: (val) {
+                  if (val != null) {
+                    onKelasChanged(val);
+                  }
+                },
+                items: [
+                  const DropdownMenuItem<int>(
+                    value: 0,
+                    child: Text('Semua Kelas (TK Keseluruhan)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  ),
+                  ...kelasList.map((k) {
+                    final int id = int.tryParse(k['id']?.toString() ?? '') ?? 0;
+                    final String name = k['nama_kelas']?.toString() ?? '-';
+                    return DropdownMenuItem<int>(
+                      value: id,
+                      child: Text('Kelas $name', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -137,12 +324,12 @@ class StatistikTab extends StatelessWidget {
             color: color.withValues(alpha: 0.10),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, size: 15, color: color),
+          child: Icon(icon, size: 16, color: color),
         ),
         const SizedBox(width: 10),
         Text(
           title,
-          style: const TextStyle(
+          style: GoogleFonts.poppins(
             fontSize: 14,
             fontWeight: FontWeight.w800,
             color: _textDark,
@@ -153,114 +340,162 @@ class StatistikTab extends StatelessWidget {
     );
   }
 
-  // ── Aspek Card ────────────────────────────────────────────────────────────
-  Widget _buildAspekCard(int agama, int jati, int steam, int avg) {
+  // ── Aspek Card with Scale Breakdown (TM, MM, M) ───────────────────────────
+  Widget _buildAspekCard(
+    String title,
+    Map<String, int> ratings,
+    int total,
+    IconData icon,
+    Color accentColor,
+  ) {
+    final int countM  = ratings['M'] ?? 0;
+    final int countMM = ratings['MM'] ?? 0;
+    final int countTM = ratings['TM'] ?? 0;
+
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _border),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF6366F1).withValues(alpha: 0.05),
+            color: accentColor.withValues(alpha: 0.04),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Rata-rata banner
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+          // Header Card
+          Row(
+            children: [
+              Icon(icon, color: accentColor, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.bold,
+                    color: _textDark,
+                  ),
+                ),
               ),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.auto_graph_rounded, color: Colors.white, size: 20),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'Rata-rata Perkembangan Anak',
-                    style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$total Penilaian',
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: accentColor,
                   ),
                 ),
-                Text(
-                  '$avg',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(height: 20),
-          _aspectBar('Nilai Agama & Budi Pekerti', agama,
-              const Color(0xFF10B981), Icons.volunteer_activism_rounded),
           const SizedBox(height: 16),
-          _aspectBar('Jati Diri', jati,
-              const Color(0xFF3B82F6), Icons.self_improvement_rounded),
-          const SizedBox(height: 16),
-          _aspectBar('Dasar Literasi & STEAM', steam,
-              const Color(0xFFD97706), Icons.science_rounded),
+
+          // Scale 1: M (Muncul)
+          _buildRatingProgressBar(
+            label: 'Muncul (M)',
+            count: countM,
+            total: total,
+            color: _colorM,
+            desc: 'Anak menunjukkan kemampuan sesuai TP secara konsisten.',
+          ),
+          const SizedBox(height: 14),
+
+          // Scale 2: MM (Mulai Muncul)
+          _buildRatingProgressBar(
+            label: 'Mulai Muncul (MM)',
+            count: countMM,
+            total: total,
+            color: _colorMM,
+            desc: 'Anak mulai memperlihatkan tanda perkembangan awal TP.',
+          ),
+          const SizedBox(height: 14),
+
+          // Scale 3: TM (Tidak Muncul)
+          _buildRatingProgressBar(
+            label: 'Tidak Muncul (TM)',
+            count: countTM,
+            total: total,
+            color: _colorTM,
+            desc: 'Anak belum memperlihatkan perilaku sesuai TP.',
+          ),
         ],
       ),
     );
   }
 
-  Widget _aspectBar(String title, int score, Color color, IconData icon) {
-    final double val = (score / 100).clamp(0.04, 1.0);
+  // Single rating progress bar
+  Widget _buildRatingProgressBar({
+    required String label,
+    required int count,
+    required int total,
+    required Color color,
+    required String desc,
+  }) {
+    final double pct = total > 0 ? (count / total) : 0.0;
+    final int pctInt = (pct * 100).round();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(icon, size: 14, color: color),
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                title,
-                style: const TextStyle(
+                label,
+                style: GoogleFonts.poppins(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: _textDark,
+                  color: const Color(0xFF334155),
                 ),
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '$score',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: color,
-                ),
+            Text(
+              '$count kali  •  $pctInt%',
+              style: GoogleFonts.poppins(
+                fontSize: 11.5,
+                fontWeight: FontWeight.bold,
+                color: color,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 5),
         ClipRRect(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(6),
           child: LinearProgressIndicator(
-            value: val,
+            value: pct,
             minHeight: 8,
-            backgroundColor: color.withValues(alpha: 0.10),
+            backgroundColor: color.withValues(alpha: 0.08),
             valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          desc,
+          textAlign: TextAlign.justify,
+          style: GoogleFonts.poppins(
+            fontSize: 9.5,
+            color: Colors.grey.shade500,
+            height: 1.3,
           ),
         ),
       ],
@@ -302,15 +537,15 @@ class StatistikTab extends StatelessWidget {
               children: [
                 const Icon(Icons.how_to_reg_rounded, color: Colors.white, size: 20),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Total Kehadiran Anak',
-                    style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
+                    style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                 ),
                 Text(
                   '$hadir',
-                  style: const TextStyle(
+                  style: GoogleFonts.poppins(
                     color: Colors.white,
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
@@ -397,12 +632,12 @@ class StatistikTab extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _textDark),
+                style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: _textDark),
               ),
             ),
             Text(
               '$count Hari  •  $pctInt%',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color),
+              style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: color),
             ),
           ],
         ),
@@ -419,4 +654,34 @@ class StatistikTab extends StatelessWidget {
       ],
     );
   }
+
+  // ── Helper Month Map ─────────────────────────────────────────────────────
+  Map<int, String> _getMonthsForSemester(int semester) {
+    if (semester == 1) {
+      return {
+        0: 'Semua Bulan (Semester Ganjil)',
+        7: 'Juli',
+        8: 'Agustus',
+        9: 'September',
+        10: 'Oktober',
+        11: 'November',
+        12: 'Desember',
+      };
+    } else {
+      return {
+        0: 'Semua Bulan (Semester Genap)',
+        1: 'Januari',
+        2: 'Februari',
+        3: 'Maret',
+        4: 'April',
+        5: 'Mei',
+        6: 'Juni',
+      };
+    }
+  }
+}
+
+// Helper Extension to fix whitee70 compile check
+extension _ColorUtils on BuildContext {
+  Color whitee70() => Colors.white.withValues(alpha: 0.7);
 }

@@ -27,11 +27,15 @@ elseif ($method == 'POST') {
     if ($action == 'add') {
         $tahun  = $conn->real_escape_string($data->tahun);
         $status = $conn->real_escape_string($data->status);
+        $tgl_m1 = isset($data->tanggal_mulai_semester_1) && $data->tanggal_mulai_semester_1 ? "'" . $conn->real_escape_string($data->tanggal_mulai_semester_1) . "'" : 'NULL';
+        $tgl_a1 = isset($data->tanggal_akhir_semester_1) && $data->tanggal_akhir_semester_1 ? "'" . $conn->real_escape_string($data->tanggal_akhir_semester_1) . "'" : 'NULL';
+        $tgl_m2 = isset($data->tanggal_mulai_semester_2) && $data->tanggal_mulai_semester_2 ? "'" . $conn->real_escape_string($data->tanggal_mulai_semester_2) . "'" : 'NULL';
+        $tgl_a2 = isset($data->tanggal_akhir_semester_2) && $data->tanggal_akhir_semester_2 ? "'" . $conn->real_escape_string($data->tanggal_akhir_semester_2) . "'" : 'NULL';
         // Jika status aktif, nonaktifkan yang lain terlebih dahulu
         if ($status === 'aktif') {
             $conn->query("UPDATE tahun_ajaran SET status = 'nonaktif'");
         }
-        $sql = "INSERT INTO tahun_ajaran (tahun, status) VALUES ('$tahun', '$status')";
+        $sql = "INSERT INTO tahun_ajaran (tahun, status, tanggal_mulai_semester_1, tanggal_akhir_semester_1, tanggal_mulai_semester_2, tanggal_akhir_semester_2) VALUES ('$tahun', '$status', $tgl_m1, $tgl_a1, $tgl_m2, $tgl_a2)";
         if ($conn->query($sql)) {
             logActivity(getPdo(), "Tahun ajaran ditambahkan", "Tahun ajaran '{$tahun}' ({$status}) berhasil dibuat", "tahun", "tambah");
             echo json_encode(["status" => "success", "message" => "Tahun ajaran berhasil ditambahkan"]);

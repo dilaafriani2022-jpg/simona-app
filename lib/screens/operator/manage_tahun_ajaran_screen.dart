@@ -131,6 +131,10 @@ class _ManageTahunAjaranScreenState extends State<ManageTahunAjaranScreen> {
     final tahunCtrl    = TextEditingController(text: tahun?['tahun']?.toString() ?? '');
     String statusValue = tahun?['status']?.toString() ?? 'nonaktif';
     bool   isSaving    = false;
+    String? tglM1      = tahun?['tanggal_mulai_semester_1']?.toString();
+    String? tglA1      = tahun?['tanggal_akhir_semester_1']?.toString();
+    String? tglM2      = tahun?['tanggal_mulai_semester_2']?.toString();
+    String? tglA2      = tahun?['tanggal_akhir_semester_2']?.toString();
 
     // Preset tahun
     final now   = DateTime.now();
@@ -225,6 +229,52 @@ class _ManageTahunAjaranScreenState extends State<ManageTahunAjaranScreen> {
                     ]),
                   ),
                   const SizedBox(height: 12),
+
+                  // ── Tanggal Semester Ganjil (Semester 1) ──────────────────
+                  _formSection(
+                    icon: Icons.calendar_today_rounded, title: 'Semester 1 (Ganjil)', color: _primary,
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      _fLabel('Tanggal Mulai Semester Ganjil'),
+                      _fDatePickerField(
+                        context: context,
+                        value: tglM1,
+                        hint: 'Pilih Tanggal Mulai',
+                        onSelected: (date) => setSheet(() => tglM1 = date),
+                      ),
+                      const SizedBox(height: 12),
+                      _fLabel('Tanggal Akhir Semester Ganjil'),
+                      _fDatePickerField(
+                        context: context,
+                        value: tglA1,
+                        hint: 'Pilih Tanggal Akhir',
+                        onSelected: (date) => setSheet(() => tglA1 = date),
+                      ),
+                    ]),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // ── Tanggal Semester Genap (Semester 2) ───────────────────
+                  _formSection(
+                    icon: Icons.calendar_today_rounded, title: 'Semester 2 (Genap)', color: _primary,
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      _fLabel('Tanggal Mulai Semester Genap'),
+                      _fDatePickerField(
+                        context: context,
+                        value: tglM2,
+                        hint: 'Pilih Tanggal Mulai',
+                        onSelected: (date) => setSheet(() => tglM2 = date),
+                      ),
+                      const SizedBox(height: 12),
+                      _fLabel('Tanggal Akhir Semester Genap'),
+                      _fDatePickerField(
+                        context: context,
+                        value: tglA2,
+                        hint: 'Pilih Tanggal Akhir',
+                        onSelected: (date) => setSheet(() => tglA2 = date),
+                      ),
+                    ]),
+                  ),
+                  const SizedBox(height: 12),
   
                   // ── Status ────────────────────────────────────
                   _formSection(
@@ -301,6 +351,10 @@ class _ManageTahunAjaranScreenState extends State<ManageTahunAjaranScreen> {
                       'action': isEdit ? 'update' : 'add',
                       'tahun' : tahunCtrl.text.trim(),
                       'status': statusValue,
+                      'tanggal_mulai_semester_1': tglM1,
+                      'tanggal_akhir_semester_1': tglA1,
+                      'tanggal_mulai_semester_2': tglM2,
+                      'tanggal_akhir_semester_2': tglA2,
                     };
                     if (isEdit) data['id'] = tahun!['id'];
 
@@ -434,13 +488,30 @@ class _ManageTahunAjaranScreenState extends State<ManageTahunAjaranScreen> {
                 ),
               ]),
               const SizedBox(height: 4),
+              if (tahun['tanggal_mulai_semester_1'] != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: Text(
+                    'Ganjil: ${_formatIndoDate(tahun['tanggal_mulai_semester_1'].toString())} s/d ${_formatIndoDate(tahun['tanggal_akhir_semester_1'].toString())}',
+                    style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              if (tahun['tanggal_mulai_semester_2'] != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    'Genap: ${_formatIndoDate(tahun['tanggal_mulai_semester_2'].toString())} s/d ${_formatIndoDate(tahun['tanggal_akhir_semester_2'].toString())}',
+                    style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              const SizedBox(height: 4),
               Row(children: [
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
+                    color: statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: statusColor.withOpacity(0.2)),
+                    border: Border.all(color: statusColor.withValues(alpha: 0.2)),
                   ),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Container(width: 6, height: 6, decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle)),
@@ -672,4 +743,74 @@ class _ManageTahunAjaranScreenState extends State<ManageTahunAjaranScreen> {
       ]),
     )),
   );
+
+  Widget _fDatePickerField({
+    required BuildContext context,
+    required String? value,
+    required String hint,
+    required ValueChanged<String> onSelected,
+  }) {
+    return GestureDetector(
+      onTap: () async {
+        final initial = value != null ? DateTime.tryParse(value) ?? DateTime.now() : DateTime.now();
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: initial,
+          firstDate: DateTime(2020),
+          lastDate: DateTime(2035),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: const ColorScheme.light(
+                  primary: Color(0xFF059669),
+                  onPrimary: Colors.white,
+                  onSurface: Color(0xFF1E293B),
+                ),
+              ),
+              child: child!,
+            );
+          },
+        );
+        if (picked != null) {
+          final formatted = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+          onSelected(formatted);
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Row(children: [
+          const Icon(Icons.calendar_today_rounded, color: Color(0xFF059669), size: 20),
+          const SizedBox(width: 12),
+          Text(
+            value != null ? _formatIndoDate(value) : hint,
+            style: TextStyle(
+              fontSize: 13,
+              color: value != null ? const Color(0xFF1E293B) : Colors.grey.shade400,
+              fontWeight: value != null ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+          const Spacer(),
+          Icon(Icons.arrow_drop_down_rounded, color: Colors.grey.shade400),
+        ]),
+      ),
+    );
+  }
+
+  String _formatIndoDate(String dateStr) {
+    try {
+      final parsed = DateTime.parse(dateStr);
+      final months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+        'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'
+      ];
+      return "${parsed.day} ${months[parsed.month - 1]} ${parsed.year}";
+    } catch (_) {
+      return dateStr;
+    }
+  }
 }

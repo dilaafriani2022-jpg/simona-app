@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../services/api_service.dart';
 import '../../profil_sekolah_screen.dart';
+import '../../about_system_screen.dart';
 
 class ProfilTab extends StatefulWidget {
   final Map<String, dynamic> currentUserData;
@@ -152,7 +153,7 @@ class _ProfilTabState extends State<ProfilTab> {
           ),
           const SizedBox(height: 24),
 
-          // Profil Sekolah Button
+           // Profil Sekolah Button
           GestureDetector(
             onTap: () => Navigator.push(context,
               MaterialPageRoute(builder: (_) =>
@@ -175,6 +176,40 @@ class _ProfilTabState extends State<ProfilTab> {
                   const Text('Profil Sekolah', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B))),
                   const SizedBox(height: 2),
                   Text('Lihat informasi lengkap sekolah', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                ])),
+                Icon(Icons.chevron_right_rounded, color: Colors.grey.shade300),
+              ])),
+          ),
+          const SizedBox(height: 16),
+
+          // Tentang SiMONA Button
+          GestureDetector(
+            onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) =>
+                AboutSystemScreen(
+                  primaryColor: Colors.indigo.shade800,
+                  primaryDark: const Color(0xFF1E1B4B),
+                  backgroundColor: Colors.white,
+                  borderColor: const Color(0xFFE2E8F0),
+                ))),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 2))]),
+              child: Row(children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.indigo.shade50,
+                    borderRadius: BorderRadius.circular(12)),
+                  child: Icon(Icons.info_outline_rounded, color: Colors.indigo.shade800, size: 22)),
+                const SizedBox(width: 14),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Tentang SiMONA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B))),
+                  const SizedBox(height: 2),
+                  Text('Informasi detail dan alur jalannya sistem', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
                 ])),
                 Icon(Icons.chevron_right_rounded, color: Colors.grey.shade300),
               ])),

@@ -31,10 +31,17 @@ class _DashboardKepsekState extends State<DashboardKepsek>
 
   List<dynamic> _guruMonitoring = [];
   List<dynamic> _anakMonitoring = [];
-  Map<String, dynamic> _aspekStats   = {'agama': 0, 'jati_diri': 0, 'steam': 0, 'total': 0};
+  Map<String, dynamic> _aspekStats   = {
+    'agama': {'TM': 0, 'MM': 0, 'M': 0},
+    'jati_diri': {'TM': 0, 'MM': 0, 'M': 0},
+    'steam': {'TM': 0, 'MM': 0, 'M': 0}
+  };
   Map<String, dynamic> _absensiStats = {'hadir': 0, 'sakit': 0, 'izin': 0, 'alpa': 0};
 
   int _selectedSemester = 1;
+  int _selectedMonth = 0; // 0 = Semua Bulan
+  int _selectedKelasId = 0; // 0 = Semua Kelas
+  List<dynamic> _kelasList = [];
   late Map<String, dynamic> _currentUserData;
 
   @override
@@ -69,12 +76,17 @@ class _DashboardKepsekState extends State<DashboardKepsek>
     setState(() => _isLoadingMonitoring = true);
     try {
       final res = await ApiService.fetch(
-          'get_kepsek_monitoring.php?semester=$_selectedSemester');
+          'get_kepsek_monitoring.php?semester=$_selectedSemester&bulan=$_selectedMonth&id_kelas=$_selectedKelasId');
       if (res['status'] == 'success') {
         final mData = res['data'] ?? {};
         _guruMonitoring = mData['guru_monitoring'] ?? [];
         _anakMonitoring = mData['anak_monitoring'] ?? [];
-        _aspekStats     = Map<String, dynamic>.from(mData['aspek_stats']   ?? {'agama': 0, 'jati_diri': 0, 'steam': 0, 'total': 0});
+        _kelasList      = mData['kelas_list'] ?? [];
+        _aspekStats     = Map<String, dynamic>.from(mData['aspek_stats']   ?? {
+          'agama': {'TM': 0, 'MM': 0, 'M': 0},
+          'jati_diri': {'TM': 0, 'MM': 0, 'M': 0},
+          'steam': {'TM': 0, 'MM': 0, 'M': 0}
+        });
         _absensiStats   = Map<String, dynamic>.from(mData['absensi_stats'] ?? {'hadir': 0, 'sakit': 0, 'izin': 0, 'alpa': 0});
       }
     } catch (e) {
@@ -230,6 +242,25 @@ class _DashboardKepsekState extends State<DashboardKepsek>
             : StatistikTab(
                 aspekStats: _aspekStats,
                 absensiStats: _absensiStats,
+                selectedSemester: _selectedSemester,
+                selectedMonth: _selectedMonth,
+                selectedKelasId: _selectedKelasId,
+                kelasList: _kelasList,
+                onMonthChanged: (bulan) {
+                  setState(() => _selectedMonth = bulan);
+                  _loadMonitoringData();
+                },
+                onSemesterChanged: (semester) {
+                  setState(() {
+                    _selectedSemester = semester;
+                    _selectedMonth = 0; // Reset ke Semua Bulan
+                  });
+                  _loadMonitoringData();
+                },
+                onKelasChanged: (kelasId) {
+                  setState(() => _selectedKelasId = kelasId);
+                  _loadMonitoringData();
+                },
               );
       case 3:
         return ProfilTab(

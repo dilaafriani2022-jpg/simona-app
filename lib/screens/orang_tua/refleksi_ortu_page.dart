@@ -81,6 +81,7 @@ class _RefleksiOrtuPageState extends State<RefleksiOrtuPage> {
         _isiCtrl.clear();
         widget.onRefresh();
         final newEntry = {
+          'id': res['id'],
           'judul': titleSent,
           'isi': bodySent,
           'created_at': DateTime.now().toString(),

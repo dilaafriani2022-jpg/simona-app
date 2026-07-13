@@ -12,6 +12,7 @@ import 'refleksi_guru_screen.dart';
 import 'rekap_raport_screen.dart';
 import '../profil_sekolah_screen.dart';
 import '../operator/activity_log_screen.dart';
+import '../about_system_screen.dart';
 
 class DashboardGuru extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -1351,6 +1352,39 @@ class _DashboardGuruState extends State<DashboardGuru>
                   Text('Profil Sekolah', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B))),
                   SizedBox(height: 2),
                   Text('Lihat informasi lengkap sekolah', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                ])),
+                Icon(Icons.chevron_right_rounded, color: Colors.grey.shade300),
+              ])),
+          ),
+          const SizedBox(height: 16),
+
+          // ── Tentang SiMONA ───────────────────────────────────────────
+          GestureDetector(
+            onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) =>
+                const AboutSystemScreen(
+                  primaryColor: _green700,
+                  primaryDark: _green900,
+                  backgroundColor: _surface,
+                  borderColor: Color(0xFFE2E8F0),
+                ))),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: _surface,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 2))]),
+              child: Row(children: [
+                Container(padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: _green700.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.info_outline_rounded, color: _green700, size: 22)),
+                const SizedBox(width: 14),
+                const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Tentang SiMONA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B))),
+                  SizedBox(height: 2),
+                  Text('Informasi detail dan alur jalannya sistem', style: TextStyle(fontSize: 11, color: Colors.grey)),
                 ])),
                 Icon(Icons.chevron_right_rounded, color: Colors.grey.shade300),
               ])),

@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../services/api_service.dart';
 import 'school_profile_screen.dart';
 import 'activity_log_screen.dart';
+import '../about_system_screen.dart';
+
 
 class SettingOperatorScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -328,7 +330,13 @@ class _SettingOperatorScreenState extends State<SettingOperatorScreen> {
           color: const Color(0xFF8E44AD),
           title: 'Tentang SiMONA',
           subtitle: 'Versi aplikasi dan informasi sistem',
-          onTap: () => _showAboutDialog(),
+          onTap: () => Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const AboutSystemScreen(
+              primaryColor: _primary,
+              primaryDark: _primaryDk,
+              backgroundColor: _bg,
+              borderColor: _border,
+            ))),
         ),
       ]),
     );
@@ -430,7 +438,9 @@ class _SettingOperatorScreenState extends State<SettingOperatorScreen> {
           ),
           const SizedBox(height: 14),
           Text('SiMONA', style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w800, color: _primaryDk)),
-          Text('Sistem Informasi Monitoring Anak', style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade500)),
+          Text('Sistem Informasi Monitoring Penilaian Perkembangan Anak',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade500)),
           const SizedBox(height: 4),
           Text('v1.0.0', style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade400)),
           const SizedBox(height: 16),

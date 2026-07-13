@@ -492,80 +492,134 @@ echo "\r\n";
      ---------------------------------------------------------------------------- -->
 <div style="font-family: 'Times New Roman', Times, serif;">
     <!-- Logo Sekolah -->
-    <p style="text-align: center; margin-top: 10px; margin-bottom: 10px;">
+    <p style="text-align: center; margin-top: 5px; margin-bottom: 5px;">
         <?php if ($has_logo): ?>
-        <img src="cid:<?php echo $logo_cid; ?>" width="100" height="100" style="display:inline-block;" alt="Logo Sekolah">
+        <img src="cid:<?php echo $logo_cid; ?>" width="80" height="80" style="display:inline-block;" alt="Logo Sekolah">
         <?php else: ?>
-        &nbsp;<br>&nbsp;<br>&nbsp;<br>&nbsp;<br>&nbsp;
+        &nbsp;<br>&nbsp;<br>&nbsp;
         <?php endif; ?>
     </p>
     
-    <p class="bold text-center" style="font-size: 18pt; line-height: 1.5; margin-top: 15px; margin-bottom: 30px;">
+    <p class="bold" style="font-size: 15pt; line-height: 1.3; margin-top: 5px; margin-bottom: 15px; text-align: center;">
         LAPORAN<br>
         PENILAIAN PERKEMBANGAN ANAK DIDIK<br>
         <?php echo $full_school_name; ?>
     </p>
     
-    <!-- Info lembaga - plain paragraph per baris, rata kiri, bebas diedit di Word -->
-    <p style="text-align: left; margin: 0; padding: 0; font-size: 11pt; line-height: 1.5; margin-top: 40px;">Nama Lembaga&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <?php echo strtoupper($nama_sekolah); ?></p>
-    <p style="text-align: left; margin: 0; padding: 0; font-size: 11pt; line-height: 1.5;">NPSN&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <?php echo $npsn; ?></p>
-    <p style="text-align: left; margin: 0; padding: 0; font-size: 11pt; line-height: 1.5;">NSTK&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <?php echo $nstk; ?></p>
-    <p style="text-align: left; margin: 0; padding: 0; font-size: 11pt; line-height: 1.5;">Alamat&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <?php echo strtoupper($sekolah_alamat); ?></p>
-    <p style="text-align: left; margin: 0; padding: 0; font-size: 11pt; line-height: 1.5;">Desa/Kelurahan&nbsp;&nbsp;: <?php echo strtoupper($sekolah_kelurahan); ?></p>
-    <p style="text-align: left; margin: 0; padding: 0; font-size: 11pt; line-height: 1.5;">Kecamatan&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <?php echo strtoupper($sekolah_kecamatan); ?></p>
-    <p style="text-align: left; margin: 0; padding: 0; font-size: 11pt; line-height: 1.5;">Kabupaten/Kota&nbsp;&nbsp;: <?php echo strtoupper($sekolah_kabupaten); ?></p>
-    <p style="text-align: left; margin: 0; padding: 0; font-size: 11pt; line-height: 1.5;">Propinsi&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <?php echo strtoupper($sekolah_provinsi); ?></p>
-    <p style="text-align: left; margin: 0; padding: 0; font-size: 11pt; line-height: 1.5; margin-bottom: 40px;">Kode Pos&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <?php echo $sekolah_kode_pos; ?></p>
+    <!-- Info lembaga - centered block paragraphs using native Word tab-stops for adjustable spacing -->
+    <div style="margin: 15px auto; width: 335pt; font-family: 'Times New Roman', Times, serif; font-size: 11pt; line-height: 1.3;">
+        <p style="margin: 0 0 5pt 0; tab-stops: 130pt;">Nama Lembaga<span style="mso-tab-count: 1"></span>: <b><?php echo strtoupper($nama_sekolah); ?></b></p>
+        <p style="margin: 0 0 5pt 0; tab-stops: 130pt;">NPSN<span style="mso-tab-count: 1"></span>: <?php echo $npsn; ?></p>
+        <p style="margin: 0 0 5pt 0; tab-stops: 130pt;">NSTK<span style="mso-tab-count: 1"></span>: <?php echo $nstk; ?></p>
+        <p style="margin: 0 0 5pt 0; tab-stops: 130pt;">Alamat<span style="mso-tab-count: 1"></span>: <?php echo strtoupper($sekolah_alamat); ?></p>
+        <p style="margin: 0 0 5pt 0; tab-stops: 130pt;">Desa/Kelurahan<span style="mso-tab-count: 1"></span>: <?php echo strtoupper($sekolah_kelurahan); ?></p>
+        <p style="margin: 0 0 5pt 0; tab-stops: 130pt;">Kecamatan<span style="mso-tab-count: 1"></span>: <?php echo strtoupper($sekolah_kecamatan); ?></p>
+        <p style="margin: 0 0 5pt 0; tab-stops: 130pt;">Kabupaten/Kota<span style="mso-tab-count: 1"></span>: <?php echo strtoupper($sekolah_kabupaten); ?></p>
+        <p style="margin: 0 0 5pt 0; tab-stops: 130pt;">Propinsi<span style="mso-tab-count: 1"></span>: <?php echo strtoupper($sekolah_provinsi); ?></p>
+        <p style="margin: 0 0 5pt 0; tab-stops: 130pt;">Kode Pos<span style="mso-tab-count: 1"></span>: <?php echo $sekolah_kode_pos; ?></p>
+    </div>
 
-    <!-- Nama murid & NISN - paragraph biasa rata kiri -->
-    <p style="text-align: left; margin: 0; padding: 0; font-size: 11pt; line-height: 1.5; margin-top: 10px;">Nama Anak Didik</p>
-    <p style="text-align: left; margin: 0; padding: 0; font-size: 11pt; line-height: 1.5;">&nbsp;</p>
-    <p style="text-align: left; margin: 0; padding: 0; font-size: 11pt; line-height: 1.5;"><span class="bold underline"><?php echo strtoupper($nama_anak_clean); ?></span></p>
-    <p style="text-align: left; margin: 0; padding: 0; font-size: 11pt; line-height: 1.5; margin-bottom: 60px;"><span class="underline" style="color: #0000ff;">NISN : <?php echo cleanText($anak['nisn'] ?: '-'); ?></span></p>
+    <!-- Nama murid & NISN - centered -->
+    <div style="text-align: center; margin-top: 15px; margin-bottom: 25px; font-family: 'Times New Roman', Times, serif; font-size: 11pt; line-height: 1.3;">
+        <p style="margin: 0; padding: 0;">Nama Anak Didik</p>
+        <p style="margin: 5px 0; padding: 0; font-size: 13pt;"><span class="bold underline"><?php echo strtoupper($nama_anak_clean); ?></span></p>
+        <p style="margin: 0; padding: 0;"><span class="underline" style="color: #0000ff;">NISN : <?php echo cleanText($anak['nisn'] ?: '-'); ?></span></p>
+    </div>
 
-    <p class="bold text-center" style="font-size: 18pt; margin-top: 60px;">
+    <p class="bold" style="font-size: 15pt; margin-top: 30px; text-align: center;">
         <?php echo $full_school_name; ?>
     </p>
 </div>
 
-<div class="page-break"></div>
+<br style="page-break-before: always; clear: both; mso-special-character: page-break;">
 
 <!-- ----------------------------------------------------------------------------
      HALAMAN 2: KETERANGAN ANAK DIDIK
      ---------------------------------------------------------------------------- -->
 <div>
-    <h2 style="font-size: 14pt; margin-bottom: 20px;">KETERANGAN ANAK DIDIK</h2>
+    <h2 style="font-size: 14pt; margin-bottom: 20px; text-align: center;">KETERANGAN ANAK DIDIK</h2>
     
-    <p style="font-family: 'Times New Roman', Times, serif; font-size: 11pt; line-height: 1.5; tab-stops: 0.8cm 5.5cm; mso-tab-stops: 0.8cm 5.5cm; margin-bottom: 25px; text-align: left;">
-        1.&#9;Nama Anak Didik<br>
-        &#9;a. Nama Lengkap&#9;: <span class="bold underline"><?php echo $nama_anak_clean; ?></span><br>
-        &#9;b. Nama Panggilan&#9;: <?php echo cleanText(($anak['nama_panggilan'] ?? '') ?: '-'); ?><br>
-        2.&#9;Nomor NISN / Nomor Induk&#9;: <?php echo cleanText($anak['nisn'] ?: '-'); ?><?php echo !empty($anak['nik']) ? ' / ' . cleanText($anak['nik']) : ''; ?><br>
-        3.&#9;Jenis Kelamin&#9;: <?php echo $jenis_kelamin; ?><br>
-        4.&#9;Tempat, Tanggal Lahir&#9;: <?php echo $tempat_tgl_lahir; ?><br>
-        5.&#9;Agama&#9;: <?php echo cleanText($anak['agama'] ?: 'Islam'); ?><br>
-        6.&#9;Anak Ke&#9;: <?php echo $anak_ke_label; ?><br>
-        7.&#9;Nama Orang Tua/Wali*)<br>
-        &#9;a. Ayah&#9;: <?php echo $ayah_nama; ?><br>
-        &#9;b. Ibu&#9;: <?php echo $ibu_nama; ?><br>
-        8.&#9;Pekerjaan Orang Tua/Wali*)<br>
-        &#9;a. Ayah&#9;: <?php echo $ayah_pekerjaan; ?><br>
-        &#9;b. Ibu&#9;: <?php echo $ibu_pekerjaan; ?><br>
-        9.&#9;Alamat Orang Tua/Wali*)<br>
-        &#9;a. Jalan&#9;: <?php echo $alamat_jalan; ?><br>
-        &#9;b. Telepon&#9;: <?php echo $alamat_telp; ?><br>
-        &#9;c. Desa/Kelurahan&#9;: <?php echo $alamat_kelurahan; ?><br>
-        &#9;d. Kecamatan&#9;: <?php echo $alamat_kecamatan; ?><br>
-        &#9;e. Kabupaten/Kota&#9;: <?php echo $alamat_kota; ?><br>
-        &#9;f. Propinsi&#9;: <?php echo $alamat_provinsi; ?><br>
-    </p>
+    <!-- Student details - aligned paragraphs using native Word tab-stops for adjustable spacing -->
+    <div style="font-family: 'Times New Roman', Times, serif; font-size: 11pt; line-height: 1.5; margin-bottom: 25px;">
+        <p style="margin: 0 0 8pt 0; tab-stops: 20pt 180pt;">
+          1.<span style="mso-tab-count: 1"></span>Nama Anak Didik<span style="mso-tab-count: 1"></span>:
+        </p>
+        <p style="margin: 0 0 8pt 20pt; tab-stops: 180pt;">
+          a. Nama Lengkap<span style="mso-tab-count: 1"></span>: <span class="bold underline"><?php echo $nama_anak_clean; ?></span>
+        </p>
+        <p style="margin: 0 0 8pt 20pt; tab-stops: 180pt;">
+          b. Nama Panggilan<span style="mso-tab-count: 1"></span>: <?php echo cleanText(($anak['nama_panggilan'] ?? '') ?: '-'); ?>
+        </p>
+        
+        <p style="margin: 0 0 8pt 0; tab-stops: 20pt 180pt;">
+          2.<span style="mso-tab-count: 1"></span>Nomor NISN / Nomor Induk<span style="mso-tab-count: 1"></span>: <?php echo cleanText($anak['nisn'] ?: '-'); ?><?php echo !empty($anak['nik']) ? ' / ' . cleanText($anak['nik']) : ''; ?>
+        </p>
+        
+        <p style="margin: 0 0 8pt 0; tab-stops: 20pt 180pt;">
+          3.<span style="mso-tab-count: 1"></span>Jenis Kelamin<span style="mso-tab-count: 1"></span>: <?php echo $jenis_kelamin; ?>
+        </p>
+        
+        <p style="margin: 0 0 8pt 0; tab-stops: 20pt 180pt;">
+          4.<span style="mso-tab-count: 1"></span>Tempat, Tanggal Lahir<span style="mso-tab-count: 1"></span>: <?php echo $tempat_tgl_lahir; ?>
+        </p>
+        
+        <p style="margin: 0 0 8pt 0; tab-stops: 20pt 180pt;">
+          5.<span style="mso-tab-count: 1"></span>Agama<span style="mso-tab-count: 1"></span>: <?php echo cleanText($anak['agama'] ?: 'Islam'); ?>
+        </p>
+        
+        <p style="margin: 0 0 8pt 0; tab-stops: 20pt 180pt;">
+          6.<span style="mso-tab-count: 1"></span>Anak Ke<span style="mso-tab-count: 1"></span>: <?php echo $anak_ke_label; ?>
+        </p>
+        
+        <p style="margin: 0 0 8pt 0; tab-stops: 20pt 180pt;">
+          7.<span style="mso-tab-count: 1"></span>Nama Orang Tua/Wali*)<span style="mso-tab-count: 1"></span>:
+        </p>
+        <p style="margin: 0 0 8pt 20pt; tab-stops: 180pt;">
+          a. Ayah<span style="mso-tab-count: 1"></span>: <?php echo $ayah_nama; ?>
+        </p>
+        <p style="margin: 0 0 8pt 20pt; tab-stops: 180pt;">
+          b. Ibu<span style="mso-tab-count: 1"></span>: <?php echo $ibu_nama; ?>
+        </p>
+        
+        <p style="margin: 0 0 8pt 0; tab-stops: 20pt 180pt;">
+          8.<span style="mso-tab-count: 1"></span>Pekerjaan Orang Tua/Wali*)<span style="mso-tab-count: 1"></span>:
+        </p>
+        <p style="margin: 0 0 8pt 20pt; tab-stops: 180pt;">
+          a. Ayah<span style="mso-tab-count: 1"></span>: <?php echo $ayah_pekerjaan; ?>
+        </p>
+        <p style="margin: 0 0 8pt 20pt; tab-stops: 180pt;">
+          b. Ibu<span style="mso-tab-count: 1"></span>: <?php echo $ibu_pekerjaan; ?>
+        </p>
+        
+        <p style="margin: 0 0 8pt 0; tab-stops: 20pt 180pt;">
+          9.<span style="mso-tab-count: 1"></span>Alamat Orang Tua/Wali*)<span style="mso-tab-count: 1"></span>:
+        </p>
+        <p style="margin: 0 0 8pt 20pt; tab-stops: 180pt;">
+          a. Jalan<span style="mso-tab-count: 1"></span>: <?php echo $alamat_jalan; ?>
+        </p>
+        <p style="margin: 0 0 8pt 20pt; tab-stops: 180pt;">
+          b. Telepon<span style="mso-tab-count: 1"></span>: <?php echo $alamat_telp; ?>
+        </p>
+        <p style="margin: 0 0 8pt 20pt; tab-stops: 180pt;">
+          c. Desa/Kelurahan<span style="mso-tab-count: 1"></span>: <?php echo $alamat_kelurahan; ?>
+        </p>
+        <p style="margin: 0 0 8pt 20pt; tab-stops: 180pt;">
+          d. Kecamatan<span style="mso-tab-count: 1"></span>: <?php echo $alamat_kecamatan; ?>
+        </p>
+        <p style="margin: 0 0 8pt 20pt; tab-stops: 180pt;">
+          e. Kabupaten/Kota<span style="mso-tab-count: 1"></span>: <?php echo $alamat_kota; ?>
+        </p>
+        <p style="margin: 0 0 8pt 20pt; tab-stops: 180pt;">
+          f. Propinsi<span style="mso-tab-count: 1"></span>: <?php echo $alamat_provinsi; ?>
+        </p>
+    </div>
 
     <br><br>
     
     <table class="border-none" style="width: 100%;">
         <tr>
             <td style="width: 150px; text-align: left; vertical-align: top;">
-                <div class="stamp-box"></div>
+                <div class="stamp-box" style="width: 80px; height: 90px; border: 1px solid #000000; background-color: #ffffff;"></div>
                 <span style="font-size: 9pt; display: block; margin-top: 5px;">*) Coret yang tidak sesuai</span>
             </td>
             <td></td>
@@ -582,7 +636,7 @@ echo "\r\n";
     </table>
 </div>
 
-<div class="page-break"></div>
+<br style="page-break-before: always; clear: both; mso-special-character: page-break;">
 
 <!-- ----------------------------------------------------------------------------
      HALAMAN 3: PETUNJUK PENGGUNAAN
@@ -602,98 +656,58 @@ echo "\r\n";
     </div>
 </div>
 
-<div class="page-break"></div>
+<br style="page-break-before: always; clear: both; mso-special-character: page-break;">
 
 <!-- ----------------------------------------------------------------------------
      HALAMAN 4: KETERANGAN NILAI KUALITATIF CAPAIAN PEMBELAJARAN
      ---------------------------------------------------------------------------- -->
 <div>
-    <h2 style="margin-bottom: 5px; font-size: 14pt;">KETERANGAN NILAI KUALITATIF</h2>
-    <h2 style="margin-bottom: 25px; font-size: 14pt;">CAPAIAN PEMBELAJARAN</h2>
+    <h2 style="margin-bottom: 5px; font-size: 14pt; text-align: center;">KETERANGAN NILAI KUALITATIF</h2>
+    <h2 style="margin-bottom: 25px; font-size: 14pt; text-align: center;">CAPAIAN PEMBELAJARAN</h2>
     
-    <table class="border-none" style="line-height: 1.5; font-size: 11pt;">
+    <div style="line-height: 1.5; font-size: 11pt; font-family: 'Times New Roman', Times, serif;">
         <?php foreach ($aspek_list as $idx => $aspek): 
             $bullets = array_filter(array_map('trim', explode("\n", $aspek['deskripsi'])));
         ?>
-            <tr>
-                <td style="width: 25px; font-weight: bold; font-size: 11pt;"><?php echo ($idx + 1); ?>.</td>
-                <td class="bold" style="font-size: 11pt;"><?php echo cleanText($aspek['nama_aspek']); ?></td>
-            </tr>
-            <tr>
-                <td></td>
-                <td style="padding-bottom: 10px; font-size: 11pt;">
-                    <?php if (empty($bullets)): ?>
-                        <span class="italic">-</span>
-                    <?php else: ?>
-                        <ul style="margin: 3px 0 3px 15px; padding: 0;">
-                            <?php foreach ($bullets as $b): ?>
-                                <li style="text-align: justify; margin-bottom: 2px; font-size: 11pt;"><?php echo cleanText($b); ?></li>
-                            <?php endforeach; ?>
-                        </ul>
-                    <?php endif; ?>
-                </td>
-            </tr>
+            <p style="margin: 0 0 4pt 0; font-weight: bold; font-size: 11pt;">
+                <?php echo ($idx + 1); ?>. &nbsp;<?php echo cleanText($aspek['nama_aspek']); ?>
+            </p>
+            <div style="margin-left: 20px; margin-bottom: 12pt; font-size: 11pt;">
+                <?php if (empty($bullets)): ?>
+                    <span class="italic">-</span>
+                <?php else: ?>
+                    <ul style="margin: 3px 0 3px 15px; padding: 0;">
+                        <?php foreach ($bullets as $b): ?>
+                            <li style="text-align: justify; margin-bottom: 2px; font-size: 11pt;"><?php echo cleanText($b); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+            </div>
         <?php endforeach; ?>
-    </table>
+    </div>
 </div>
 
-<div class="page-break"></div>
+<br style="page-break-before: always; clear: both; mso-special-character: page-break;">
 
 <!-- ----------------------------------------------------------------------------
      HALAMAN 5: IDENTITAS & NILAI AGAMA
      ---------------------------------------------------------------------------- -->
 <div>
-    <h2 style="font-size: 12pt; margin-bottom: 20px;">LAPORAN PENILAIAN PERKEMBANGAN ANAK</h2>
+    <h2 style="font-size: 12pt; margin-bottom: 20px; text-align: center;">LAPORAN PENILAIAN PERKEMBANGAN ANAK</h2>
     
-    <table class="border-none" style="width: 100%; font-size: 11pt;">
+    <table class="border-none" style="width: 100%; font-family: 'Times New Roman', Times, serif; font-size: 11pt; margin-bottom: 10px;">
         <tr>
-            <td style="width: 50%; vertical-align: top;">
-                <table class="border-none" style="font-size: 11pt; margin: 0;">
-                    <tr>
-                        <td style="width: 100px; font-size: 11pt;">Nama Sekolah</td>
-                        <td style="width: 8px; font-size: 11pt;">:</td>
-                        <td style="font-size: 11pt;"><?php echo $nama_sekolah; ?></td>
-                    </tr>
-                    <tr>
-                        <td class="bold" style="font-size: 11pt;">Nama Anak Didik</td>
-                        <td class="bold">:</td>
-                        <td class="bold" style="font-size: 11pt;"><?php echo $nama_anak_clean; ?></td>
-                    </tr>
-                    <tr>
-                        <td style="font-size: 11pt;">Tahun Ajaran</td>
-                        <td style="font-size: 11pt;">:</td>
-                        <td style="font-size: 11pt;"><?php echo $tahun_ajaran; ?></td>
-                    </tr>
-                    <tr>
-                        <td style="font-size: 11pt;">Semester</td>
-                        <td style="font-size: 11pt;">:</td>
-                        <td style="font-size: 11pt;"><?php echo $semester_label; ?></td>
-                    </tr>
-                </table>
+            <td style="width: 50%; vertical-align: top; padding: 0;">
+                <p style="margin: 0 0 3pt 0; tab-stops: 110pt; font-size: 11pt;">Nama Sekolah<span style="mso-tab-count: 1"></span>: <?php echo $nama_sekolah; ?></p>
+                <p style="margin: 0 0 3pt 0; tab-stops: 110pt; font-weight: bold; font-size: 11pt;">Nama Anak Didik<span style="mso-tab-count: 1"></span>: <span class="underline"><?php echo $nama_anak_clean; ?></span></p>
+                <p style="margin: 0 0 3pt 0; tab-stops: 110pt; font-size: 11pt;">Tahun Ajaran<span style="mso-tab-count: 1"></span>: <?php echo $tahun_ajaran; ?></p>
+                <p style="margin: 0 0 3pt 0; tab-stops: 110pt; font-size: 11pt;">Semester<span style="mso-tab-count: 1"></span>: <?php echo $semester_label; ?></p>
             </td>
-            <td style="width: 50%; vertical-align: top;">
-                <table class="border-none" style="font-size: 11pt; margin: 0;">
-                    <tr>
-                        <td style="width: 100px; font-size: 11pt;">Kelompok</td>
-                        <td style="width: 8px; font-size: 11pt;">:</td>
-                        <td style="font-size: 11pt;"><?php echo $clean_kelas; ?></td>
-                    </tr>
-                    <tr>
-                        <td style="font-size: 11pt;">Fase</td>
-                        <td style="font-size: 11pt;">:</td>
-                        <td style="font-size: 11pt;">Fondasi</td>
-                    </tr>
-                    <tr>
-                        <td style="font-size: 11pt;">Tinggi Badan</td>
-                        <td style="font-size: 11pt;">:</td>
-                        <td style="font-size: 11pt;"><?php echo cleanText($anak['tinggi_badan'] ?: '-'); ?> Cm</td>
-                    </tr>
-                    <tr>
-                        <td style="font-size: 11pt;">Berat Badan</td>
-                        <td style="font-size: 11pt;">:</td>
-                        <td style="font-size: 11pt;"><?php echo cleanText($anak['berat_badan'] ?: '-'); ?> Kg</td>
-                    </tr>
-                </table>
+            <td style="width: 50%; vertical-align: top; padding: 0;">
+                <p style="margin: 0 0 3pt 0; tab-stops: 90pt; font-size: 11pt;">Kelompok<span style="mso-tab-count: 1"></span>: <?php echo $clean_kelas; ?></p>
+                <p style="margin: 0 0 3pt 0; tab-stops: 90pt; font-size: 11pt;">Fase<span style="mso-tab-count: 1"></span>: Fondasi</p>
+                <p style="margin: 0 0 3pt 0; tab-stops: 90pt; font-size: 11pt;">Tinggi Badan<span style="mso-tab-count: 1"></span>: <?php echo cleanText($anak['tinggi_badan'] ?: '-'); ?> Cm</p>
+                <p style="margin: 0 0 3pt 0; tab-stops: 90pt; font-size: 11pt;">Berat Badan<span style="mso-tab-count: 1"></span>: <?php echo cleanText($anak['berat_badan'] ?: '-'); ?> Kg</p>
             </td>
         </tr>
     </table>
@@ -706,7 +720,7 @@ echo "\r\n";
             <th class="bold" style="padding: 10px; font-size: 12pt; text-align: center;">Nilai Agama dan Budi Pekerti</th>
         </tr>
         <tr>
-            <td class="text-justify" style="padding: 15px; line-height: 1.5; font-size: 11pt;">
+            <td style="padding: 15px; line-height: 1.5; font-size: 11pt; text-align: justify;">
                 <?php 
                     $agama_paras = array_filter(array_map('trim', explode("\n", $narasi['narasi_agama'])));
                     if (empty($agama_paras) || $narasi['narasi_agama'] === '-') {
@@ -720,7 +734,7 @@ echo "\r\n";
     </table>
 </div>
 
-<div class="page-break"></div>
+<br style="page-break-before: always; clear: both; mso-special-character: page-break;">
 
 <!-- ----------------------------------------------------------------------------
      HALAMAN 6: JATI DIRI & STEAM
@@ -732,7 +746,7 @@ echo "\r\n";
             <th class="bold" style="padding: 10px; font-size: 12pt; text-align: center;">Jati Diri</th>
         </tr>
         <tr>
-            <td class="text-justify" style="padding: 15px; line-height: 1.5; font-size: 11pt;">
+            <td style="padding: 15px; line-height: 1.5; font-size: 11pt; text-align: justify;">
                 <?php 
                     $jati_paras = array_filter(array_map('trim', explode("\n", $narasi['narasi_jati_diri'])));
                     if (empty($jati_paras) || $narasi['narasi_jati_diri'] === '-') {
@@ -753,7 +767,7 @@ echo "\r\n";
             <th class="bold" style="padding: 10px; font-size: 12pt; text-align: center;">Dasar Literasi dan STEAM</th>
         </tr>
         <tr>
-            <td class="text-justify" style="padding: 15px; line-height: 1.5; font-size: 11pt;">
+            <td style="padding: 15px; line-height: 1.5; font-size: 11pt; text-align: justify;">
                 <?php 
                     $steam_paras = array_filter(array_map('trim', explode("\n", $narasi['narasi_literasi_steam'])));
                     if (empty($steam_paras) || $narasi['narasi_literasi_steam'] === '-') {
@@ -767,7 +781,7 @@ echo "\r\n";
     </table>
 </div>
 
-<div class="page-break"></div>
+<br style="page-break-before: always; clear: both; mso-special-character: page-break;">
 
 <!-- ----------------------------------------------------------------------------
      HALAMAN 7: FOTO KEGIATAN ANAK
@@ -775,7 +789,7 @@ echo "\r\n";
 <div>
     <table class="border-all" style="width: 100%; border: 1px solid #000000;">
         <tr style="background-color: #E74C3C;">
-            <th class="text-center" style="color: #ffffff; font-weight: bold; font-size: 12pt; padding: 10px;">Foto Kegiatan Anak</th>
+            <th style="color: #ffffff; font-weight: bold; font-size: 12pt; padding: 10px; text-align: center;">Foto Kegiatan Anak</th>
         </tr>
         <tr>
             <td style="height: 450px; vertical-align: top; padding: 15px;">
@@ -785,7 +799,7 @@ echo "\r\n";
     </table>
 </div>
 
-<div class="page-break"></div>
+<br style="page-break-before: always; clear: both; mso-special-character: page-break;">
 
 <!-- ----------------------------------------------------------------------------
      HALAMAN 8: REFLEKSI & KOKURIKULER
@@ -797,7 +811,7 @@ echo "\r\n";
             <th class="bold" style="padding: 10px; font-size: 12pt; text-align: center;">Refleksi Guru</th>
         </tr>
         <tr>
-            <td class="text-justify" style="padding: 15px; line-height: 1.5; font-size: 11pt;">
+            <td style="padding: 15px; line-height: 1.5; font-size: 11pt; text-align: justify;">
                 <?php echo cleanText($ref_guru_text); ?>
             </td>
         </tr>
@@ -813,14 +827,11 @@ echo "\r\n";
         </tr>
         <tr>
             <td style="padding: 15px; line-height: 1.5; font-size: 11pt;">
-                <table class="border-none" style="margin: 0; font-size: 11pt;">
-                    <?php foreach ($refleksi_ortu as $idx => $r_text): ?>
-                        <tr>
-                            <td style="width: 20px; font-size: 11pt;" valign="top"><?php echo ($idx + 1); ?>.</td>
-                            <td class="text-justify" style="font-size: 11pt;"><?php echo cleanText($r_text); ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                </table>
+                <?php foreach ($refleksi_ortu as $idx => $r_text): ?>
+                    <p style="margin: 0 0 6pt 0; text-align: justify; font-size: 11pt; font-family: 'Times New Roman', Times, serif;">
+                        <?php echo ($idx + 1) . '. ' . cleanText($r_text); ?>
+                    </p>
+                <?php endforeach; ?>
             </td>
         </tr>
     </table>
@@ -834,7 +845,7 @@ echo "\r\n";
             <th class="bold" style="padding: 10px; font-size: 11pt; text-align: center;">KOKURIKULER GERAKAN 7 KEBIASAAN ANAK INDONESIA HEBAT</th>
         </tr>
         <tr>
-            <td class="text-justify" style="padding: 15px; line-height: 1.5; font-size: 11pt;">
+            <td style="padding: 15px; line-height: 1.5; font-size: 11pt; text-align: justify;">
                 <?php echo cleanText($narasi['narasi_kokurikuler'] ?: ''); ?>
             </td>
         </tr>
@@ -855,7 +866,7 @@ echo "\r\n";
     </table>
 </div>
 
-<div class="page-break"></div>
+<br style="page-break-before: always; clear: both; mso-special-character: page-break;">
 
 <!-- ----------------------------------------------------------------------------
      HALAMAN 9: EKSKUL, KEHADIRAN, TANDA TANGAN
@@ -864,20 +875,20 @@ echo "\r\n";
     <span class="bold" style="font-size: 11pt;">A. KEGIATAN EKSTRAKURIKULER</span>
     <table class="border-all" style="font-size: 11pt; margin-top: 5px;">
         <tr style="background-color: #C55A11;">
-            <th class="text-center" style="width: 40px; color: #ffffff; font-weight: bold; font-size: 11pt;">No</th>
-            <th class="text-center" style="width: 160px; color: #ffffff; font-weight: bold; font-size: 11pt;">Ekstrakurikuler</th>
-            <th class="text-center" style="color: #ffffff; font-weight: bold; font-size: 11pt;">Keterangan</th>
+            <th style="width: 40px; color: #ffffff; font-weight: bold; font-size: 11pt; text-align: center;">No</th>
+            <th style="width: 160px; color: #ffffff; font-weight: bold; font-size: 11pt; text-align: center;">Ekstrakurikuler</th>
+            <th style="color: #ffffff; font-weight: bold; font-size: 11pt; text-align: center;">Keterangan</th>
         </tr>
         <?php if (empty($ekskul_list)): ?>
             <tr>
-                <td class="text-center" style="font-size: 11pt;">-</td>
-                <td class="text-center" style="font-size: 11pt;">-</td>
-                <td class="text-center" style="font-size: 11pt;">-</td>
+                <td style="font-size: 11pt; text-align: center;">-</td>
+                <td style="font-size: 11pt; text-align: center;">-</td>
+                <td style="font-size: 11pt; text-align: center;">-</td>
             </tr>
         <?php else: ?>
             <?php foreach ($ekskul_list as $idx => $e): ?>
                 <tr>
-                    <td class="text-center" style="font-size: 11pt;"><?php echo ($idx + 1); ?>.</td>
+                    <td style="font-size: 11pt; text-align: center;"><?php echo ($idx + 1); ?>.</td>
                     <td class="bold" style="font-size: 11pt;"><?php echo cleanText($e['nama_ekstrakurikuler']); ?></td>
                     <td style="font-size: 11pt;"><?php echo cleanText($e['catatan'] ?: '-'); ?></td>
                 </tr>
@@ -890,14 +901,14 @@ echo "\r\n";
     <span class="bold" style="font-size: 11pt;">B. PRESTASI</span>
     <table class="border-all" style="font-size: 11pt; margin-top: 5px;">
         <tr style="background-color: #A9D08E;">
-            <th class="text-center" style="width: 40px; font-weight: bold; font-size: 11pt;">No</th>
-            <th class="text-center" style="width: 160px; font-weight: bold; font-size: 11pt;">JENIS PRESTASI</th>
-            <th class="text-center" style="font-weight: bold; font-size: 11pt;">Keterangan</th>
+            <th style="width: 40px; font-weight: bold; font-size: 11pt; text-align: center;">No</th>
+            <th style="width: 160px; font-weight: bold; font-size: 11pt; text-align: center;">JENIS PRESTASI</th>
+            <th style="font-weight: bold; font-size: 11pt; text-align: center;">Keterangan</th>
         </tr>
         <tr>
-            <td class="text-center" style="font-size: 11pt;">-</td>
-            <td class="text-center" style="font-size: 11pt;">-</td>
-            <td class="text-center" style="font-size: 11pt;">-</td>
+            <td style="font-size: 11pt; text-align: center;">-</td>
+            <td style="font-size: 11pt; text-align: center;">-</td>
+            <td style="font-size: 11pt; text-align: center;">-</td>
         </tr>
     </table>
 
@@ -905,51 +916,45 @@ echo "\r\n";
 
     <table class="border-all" style="font-size: 11pt; width: 100%;">
         <tr style="background-color: #A9D08E;">
-            <th class="text-center" style="font-weight: bold; padding: 6px; font-size: 11pt;">TINGKAT KEHADIRAN</th>
+            <th style="font-weight: bold; padding: 6px; font-size: 11pt; text-align: center;">TINGKAT KEHADIRAN</th>
         </tr>
     </table>
     <table class="border-none" style="width: 100%; margin-top: 5px; font-size: 11pt;">
         <tr>
             <td style="width: 32%;">
                 <table class="border-all" style="margin: 0; width: 100%; font-size: 11pt;">
-                    <tr><td class="kehadiran-num" style="font-size: 11pt;"><?php echo $sakit; ?></td></tr>
+                    <tr><td class="kehadiran-num" style="font-size: 11pt; text-align: center; font-weight: bold; padding: 8px; border: 1px solid #000000; font-family: 'Times New Roman', Times, serif;"><?php echo $sakit; ?></td></tr>
                     <tr style="background-color: #FCE4D6;">
-                        <td class="kehadiran-label" style="font-size: 11pt;">Sakit</td>
+                        <td class="kehadiran-label" style="font-size: 11pt; text-align: center; padding: 4px; border: 1px solid #000000; font-family: 'Times New Roman', Times, serif;">Sakit</td>
                     </tr>
                 </table>
             </td>
             <td style="width: 2%;"></td>
             <td style="width: 32%;">
                 <table class="border-all" style="margin: 0; width: 100%; font-size: 11pt;">
-                    <tr><td class="kehadiran-num" style="font-size: 11pt;"><?php echo $izin; ?></td></tr>
+                    <tr><td class="kehadiran-num" style="font-size: 11pt; text-align: center; font-weight: bold; padding: 8px; border: 1px solid #000000; font-family: 'Times New Roman', Times, serif;"><?php echo $izin; ?></td></tr>
                     <tr style="background-color: #FFF2CC;">
-                        <td class="kehadiran-label" style="font-size: 11pt;">Izin</td>
+                        <td class="kehadiran-label" style="font-size: 11pt; text-align: center; padding: 4px; border: 1px solid #000000; font-family: 'Times New Roman', Times, serif;">Izin</td>
                     </tr>
                 </table>
             </td>
             <td style="width: 2%;"></td>
             <td style="width: 32%;">
                 <table class="border-all" style="margin: 0; width: 100%; font-size: 11pt;">
-                    <tr><td class="kehadiran-num" style="font-size: 11pt;"><?php echo ($alpa === 0) ? '-' : $alpa; ?></td></tr>
+                    <tr><td class="kehadiran-num" style="font-size: 11pt; text-align: center; font-weight: bold; padding: 8px; border: 1px solid #000000; font-family: 'Times New Roman', Times, serif;"><?php echo ($alpa === 0) ? '-' : $alpa; ?></td></tr>
                     <tr style="background-color: #E7E6E6;">
-                        <td class="kehadiran-label" style="font-size: 11pt;">Tanpa Keterangan</td>
+                        <td class="kehadiran-label" style="font-size: 11pt; text-align: center; padding: 4px; border: 1px solid #000000; font-family: 'Times New Roman', Times, serif;">Tanpa Keterangan</td>
                     </tr>
                 </table>
             </td>
         </tr>
     </table>
 
-    <table class="border-none" style="width: 100%; font-size: 11pt; margin-top: 15px;">
-        <tr>
-            <td style="width: 50%;"></td>
-            <td style="width: 50%; font-size: 11pt;">
-                <div class="text-left" style="line-height: 1.5; padding-left: 80px; font-size: 11pt;">
-                    Diberikan di &nbsp;: Bengkalis<br>
-                    Tanggal &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <?php echo $tanggal_cetak; ?>
-                </div>
-            </td>
-        </tr>
-    </table>
+    <!-- Date and Place - right-aligned block using native Word tab-stops for adjustable spacing -->
+    <div style="font-family: 'Times New Roman', Times, serif; font-size: 11pt; line-height: 1.5; margin-top: 15px; margin-left: 280pt;">
+        <p style="margin: 0 0 4pt 0; tab-stops: 80pt;">Diberikan di<span style="mso-tab-count: 1"></span>: Bengkalis</p>
+        <p style="margin: 0 0 10pt 0; tab-stops: 80pt;">Tanggal<span style="mso-tab-count: 1"></span>: <?php echo $tanggal_cetak; ?></p>
+    </div>
 
     <br><br>
 
@@ -976,7 +981,7 @@ echo "\r\n";
                 Kepala <?php echo $nama_sekolah; ?><br><br><br><br>
                 <span class="bold underline" style="font-size: 11pt;"><?php echo strtoupper($kepala_sekolah); ?></span>
                 <?php if (!empty($nip_kepala_sekolah)): ?>
-                    <br><span style="font-size: 11pt;">NIP. <?php echo $nip_kepala_sekolah; ?></span>
+                    <br><span style="font-size: 11pt;">NIP. <?php echo cleanText($nip_kepala_sekolah); ?></span>
                 <?php endif; ?>
             </td>
         </tr>

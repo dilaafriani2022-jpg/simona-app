@@ -8,7 +8,9 @@ require_once 'config.php';
 require_once 'cors.php';
 
 $semester = isset($_GET['semester']) ? (int)$_GET['semester'] : 1;
-$bulan = isset($_GET['bulan']) ? (int)$_GET['bulan'] : 6; // default to semester report month
+$bulan_report = ($semester == 1) ? 12 : 6;
+$bulan_filter_val = isset($_GET['bulan']) ? (int)$_GET['bulan'] : 0; // 0 = Semua Bulan
+$id_kelas_filter = isset($_GET['id_kelas']) ? (int)$_GET['id_kelas'] : 0; // 0 = Semua Kelas
 
 // Ambil tahun ajaran aktif
 $res_ta_aktif = $conn->query("SELECT id, tahun FROM tahun_ajaran WHERE status = 'aktif' LIMIT 1");
@@ -99,7 +101,7 @@ if ($res_guru) {
             $c_res = $conn->query("
                 SELECT COUNT(*) AS c 
                 FROM rekap_aspek_bulanan 
-                WHERE bulan = $bulan AND semester = $semester 
+                WHERE bulan = $bulan_report AND semester = $semester 
                   AND id_anak IN (SELECT id FROM anak WHERE id_kelas = $id_kelas)
             ");
             $completed_count = $c_res ? (int)$c_res->fetch_assoc()['c'] : 0;
@@ -179,79 +181,81 @@ if ($res_anak) {
     }
 }
 
+// Helper to get TM, MM, M counts for a list of aspects, month filter, and class filter
+function getRatingCounts($conn, $aspek_ids, $semester, $bulan_filter_val, $id_kelas_filter) {
+    $aspek_str = implode(',', $aspek_ids);
+    $bulan_filter = "";
+    if ($bulan_filter_val > 0) {
+        $bulan_filter = " AND MONTH(pc.tanggal) = $bulan_filter_val ";
+    }
+    
+    $kelas_filter = "";
+    if ($id_kelas_filter > 0) {
+        $kelas_filter = " AND pc.id_anak IN (SELECT id FROM anak WHERE id_kelas = $id_kelas_filter) ";
+    }
+    
+    $sql = "
+        SELECT pc.status, COUNT(*) AS c 
+        FROM penilaian pc
+        JOIN kegiatan_pembelajaran kg ON pc.id_kegiatan = kg.id
+        JOIN tujuan_pembelajaran tp ON kg.id_tujuan = tp.id
+        WHERE tp.id_aspek IN ($aspek_str) 
+          AND pc.tipe = 'checklist' 
+          AND pc.semester = $semester
+          $bulan_filter
+          $kelas_filter
+        GROUP BY pc.status
+    ";
+    
+    $res = $conn->query($sql);
+    $counts = ["TM" => 0, "MM" => 0, "M" => 0];
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $status = $row['status'];
+            $count = (int)$row['c'];
+            
+            if ($status === 'TM' || $status === 'BB') {
+                $counts['TM'] += $count;
+            } elseif ($status === 'MM' || $status === 'MB') {
+                $counts['MM'] += $count;
+            } elseif ($status === 'M' || $status === 'BSH' || $status === 'BSB') {
+                $counts['M'] += $count;
+            }
+        }
+    }
+    return $counts;
+}
+
 // 3. STATISTIK PERKEMBANGAN ASPEK
-$aspek_stats = [];
-
-// Aspek 1: Agama & Budi Pekerti
-$res_agama = $conn->query("
-    SELECT COUNT(*) AS c FROM penilaian pc
-    JOIN kegiatan_pembelajaran kg ON pc.id_kegiatan = kg.id
-    JOIN tujuan_pembelajaran tp ON kg.id_tujuan = tp.id
-    WHERE tp.id_aspek = 1 
-      AND pc.tipe = 'checklist' 
-      AND pc.status IN ('M', 'BSH', 'BSB')
-      AND pc.semester = $semester
-");
-$c_agama = $res_agama ? (int)$res_agama->fetch_assoc()['c'] : 0;
-
-// Aspek 2 & 5: Jati Diri
-$res_jati = $conn->query("
-    SELECT COUNT(*) AS c FROM penilaian pc
-    JOIN kegiatan_pembelajaran kg ON pc.id_kegiatan = kg.id
-    JOIN tujuan_pembelajaran tp ON kg.id_tujuan = tp.id
-    WHERE tp.id_aspek IN (2, 5) 
-      AND pc.tipe = 'checklist' 
-      AND pc.status IN ('M', 'BSH', 'BSB')
-      AND pc.semester = $semester
-");
-$c_jati = $res_jati ? (int)$res_jati->fetch_assoc()['c'] : 0;
-
-// Aspek 3, 4, 6: Dasar Literasi & STEAM
-$res_steam = $conn->query("
-    SELECT COUNT(*) AS c FROM penilaian pc
-    JOIN kegiatan_pembelajaran kg ON pc.id_kegiatan = kg.id
-    JOIN tujuan_pembelajaran tp ON kg.id_tujuan = tp.id
-    WHERE tp.id_aspek IN (3, 4, 6) 
-      AND pc.tipe = 'checklist' 
-      AND pc.status IN ('M', 'BSH', 'BSB')
-      AND pc.semester = $semester
-");
-$c_steam = $res_steam ? (int)$res_steam->fetch_assoc()['c'] : 0;
-
 $aspek_stats = [
-    "agama" => $c_agama,
-    "jati_diri" => $c_jati,
-    "steam" => $c_steam,
-    "total" => $c_agama + $c_jati + $c_steam
+    "agama" => getRatingCounts($conn, [1], $semester, $bulan_filter_val, $id_kelas_filter),
+    "jati_diri" => getRatingCounts($conn, [2, 5], $semester, $bulan_filter_val, $id_kelas_filter),
+    "steam" => getRatingCounts($conn, [3, 4, 6], $semester, $bulan_filter_val, $id_kelas_filter)
 ];
 
 // 4. STATISTIK ABSENSI SEMESTER
-$res_hadir = $conn->query("
-    SELECT COUNT(*) AS c FROM absensi ab
-    WHERE ab.status = 'Hadir'
-      AND ab.tanggal BETWEEN '$tgl_mulai' AND '$tgl_akhir'
-");
+$absensi_bulan_filter = "";
+if ($bulan_filter_val > 0) {
+    $absensi_bulan_filter = " AND MONTH(ab.tanggal) = $bulan_filter_val ";
+} else {
+    $absensi_bulan_filter = " AND ab.tanggal BETWEEN '$tgl_mulai' AND '$tgl_akhir' ";
+}
+
+$absensi_kelas_filter = "";
+if ($id_kelas_filter > 0) {
+    $absensi_kelas_filter = " AND ab.id_anak IN (SELECT id FROM anak WHERE id_kelas = $id_kelas_filter) ";
+}
+
+$res_hadir = $conn->query("SELECT COUNT(*) AS c FROM absensi ab WHERE ab.status = 'Hadir' $absensi_bulan_filter $absensi_kelas_filter");
 $c_hadir = $res_hadir ? (int)$res_hadir->fetch_assoc()['c'] : 0;
 
-$res_sakit = $conn->query("
-    SELECT COUNT(*) AS c FROM absensi ab
-    WHERE ab.status = 'Sakit'
-      AND ab.tanggal BETWEEN '$tgl_mulai' AND '$tgl_akhir'
-");
+$res_sakit = $conn->query("SELECT COUNT(*) AS c FROM absensi ab WHERE ab.status = 'Sakit' $absensi_bulan_filter $absensi_kelas_filter");
 $c_sakit = $res_sakit ? (int)$res_sakit->fetch_assoc()['c'] : 0;
 
-$res_izin = $conn->query("
-    SELECT COUNT(*) AS c FROM absensi ab
-    WHERE ab.status = 'Izin'
-      AND ab.tanggal BETWEEN '$tgl_mulai' AND '$tgl_akhir'
-");
+$res_izin = $conn->query("SELECT COUNT(*) AS c FROM absensi ab WHERE ab.status = 'Izin' $absensi_bulan_filter $absensi_kelas_filter");
 $c_izin = $res_izin ? (int)$res_izin->fetch_assoc()['c'] : 0;
 
-$res_alpa = $conn->query("
-    SELECT COUNT(*) AS c FROM absensi ab
-    WHERE ab.status = 'Alpa'
-      AND ab.tanggal BETWEEN '$tgl_mulai' AND '$tgl_akhir'
-");
+$res_alpa = $conn->query("SELECT COUNT(*) AS c FROM absensi ab WHERE ab.status = 'Alpa' $absensi_bulan_filter $absensi_kelas_filter");
 $c_alpa = $res_alpa ? (int)$res_alpa->fetch_assoc()['c'] : 0;
 
 $absensi_stats = [
@@ -261,13 +265,26 @@ $absensi_stats = [
     "alpa" => $c_alpa
 ];
 
+// Ambil list kelas untuk filter di UI Kepsek
+$res_kelas = $conn->query("SELECT id, nama_kelas FROM kelas ORDER BY nama_kelas ASC");
+$kelas_list = [];
+if ($res_kelas) {
+    while ($row = $res_kelas->fetch_assoc()) {
+        $kelas_list[] = [
+            "id" => (int)$row['id'],
+            "nama_kelas" => $row['nama_kelas']
+        ];
+    }
+}
+
 echo json_encode([
     "status" => "success",
     "data" => [
         "guru_monitoring" => $guru_list,
         "anak_monitoring" => $anak_list,
         "aspek_stats" => $aspek_stats,
-        "absensi_stats" => $absensi_stats
+        "absensi_stats" => $absensi_stats,
+        "kelas_list" => $kelas_list
     ]
 ]);
 

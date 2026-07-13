@@ -31,11 +31,13 @@ $password   = $data->password;
 // - guru      → nip
 // - kepsek    → email
 // - orang_tua → nisn (login pakai NISN anak sebagai username & password)
-$sql = "SELECT * FROM users 
-        WHERE username = '$identifier' 
-           OR nip      = '$identifier' 
-           OR email    = '$identifier' 
-           OR nisn     = '$identifier'
+$sql = "SELECT u.* FROM users u
+        LEFT JOIN anak a ON a.id_ortu = u.id
+        WHERE u.username = '$identifier' 
+           OR u.nip      = '$identifier' 
+           OR u.email    = '$identifier' 
+           OR u.nisn     = '$identifier'
+           OR (u.role = 'orang_tua' AND a.nisn = '$identifier')
         LIMIT 1";
 
 $result = $conn->query($sql);
@@ -53,7 +55,19 @@ if ($result->num_rows === 0) {
 $user = $result->fetch_assoc();
 
 // Verifikasi password (bcrypt hash)
-if (!password_verify($password, $user['password'])) {
+$password_ok = password_verify($password, $user['password']);
+
+if (!$password_ok && $user['role'] === 'orang_tua') {
+    // Fallback: Periksa apakah password yang dimasukkan cocok dengan NISN dari salah satu anak yang terhubung
+    $ortuUserId = intval($user['id']);
+    $check_sql = "SELECT id FROM anak WHERE id_ortu = $ortuUserId AND nisn = '" . $conn->real_escape_string($password) . "' LIMIT 1";
+    $check_res = $conn->query($check_sql);
+    if ($check_res && $check_res->num_rows > 0) {
+        $password_ok = true;
+    }
+}
+
+if (!$password_ok) {
     echo json_encode(["status" => "error", "message" => "Incorrect password"]);
     exit();
 }
@@ -97,6 +111,10 @@ if ($user['role'] === 'guru') {
 
 // Jangan kirim password ke client
 unset($user['password']);
+
+if ($user['role'] === 'orang_tua') {
+    $user['login_nisn'] = $identifier;
+}
 
 echo json_encode([
     "status"  => "success",

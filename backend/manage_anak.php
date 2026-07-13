@@ -121,6 +121,14 @@ if ($method == 'GET') {
                      $alamat, $id_kelas, $realOrtuId)";
 
         if ($conn->query($sql)) {
+            // Sinkronisasi NISN ke tabel users untuk orang tua
+            if (!empty($id_ortu) && !empty($data->nisn)) {
+                $ortuId = intval($id_ortu);
+                $newNisn = $data->nisn;
+                $escapedNisn = $conn->real_escape_string($newNisn);
+                $hashedPassword = password_hash($newNisn, PASSWORD_BCRYPT);
+                $conn->query("UPDATE users SET nisn = '$escapedNisn', password = '$hashedPassword' WHERE id = $ortuId AND role = 'orang_tua'");
+            }
             logActivity(getPdo(), "Data anak ditambahkan", "Anak " . $nama . " berhasil dibuat", "anak", "tambah", $currentUserId, $currentUserRole);
             echo json_encode(["status" => "success", "message" => "Anak berhasil ditambahkan"]);
         } else {
@@ -165,6 +173,14 @@ if ($method == 'GET') {
                 WHERE id = $id";
 
         if ($conn->query($sql)) {
+            // Sinkronisasi NISN ke tabel users untuk orang tua
+            if (!empty($id_ortu) && !empty($data->nisn)) {
+                $ortuId = intval($id_ortu);
+                $newNisn = $data->nisn;
+                $escapedNisn = $conn->real_escape_string($newNisn);
+                $hashedPassword = password_hash($newNisn, PASSWORD_BCRYPT);
+                $conn->query("UPDATE users SET nisn = '$escapedNisn', password = '$hashedPassword' WHERE id = $ortuId AND role = 'orang_tua'");
+            }
             logActivity(getPdo(), "Data anak diperbarui", "Anak " . $nama . " berhasil diperbarui", "anak", "edit", $currentUserId, $currentUserRole);
             echo json_encode(["status" => "success", "message" => "Anak berhasil diperbarui"]);
         } else {

@@ -89,7 +89,12 @@ class _DashboardOrtuState extends State<DashboardOrtu>
   void _initData() {
     _anakList = widget.user['anak'] ?? [];
     if (_anakList.isNotEmpty) {
-      _selectedAnak = _anakList[0];
+      final loginNisn = widget.user['login_nisn']?.toString();
+      final match = _anakList.firstWhere(
+        (s) => s['nisn']?.toString() == loginNisn,
+        orElse: () => null,
+      );
+      _selectedAnak = match ?? _anakList[0];
       _fetchDataForSelectedAnak();
     }
     _refreshAnakList();
@@ -106,7 +111,12 @@ class _DashboardOrtuState extends State<DashboardOrtu>
           setState(() {
             _anakList = list;
             if (_selectedAnak == null && _anakList.isNotEmpty) {
-              _selectedAnak = _anakList[0];
+              final loginNisn = widget.user['login_nisn']?.toString();
+              final match = _anakList.firstWhere(
+                (s) => s['nisn']?.toString() == loginNisn,
+                orElse: () => null,
+              );
+              _selectedAnak = match ?? _anakList[0];
               _fetchDataForSelectedAnak();
             } else if (_selectedAnak != null) {
               final match = _anakList.firstWhere(

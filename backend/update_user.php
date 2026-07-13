@@ -29,7 +29,17 @@ if (isset($data->nip)) {
     $updates[] = "nip = '" . $conn->real_escape_string($data->nip) . "'";
 }
 if (isset($data->nisn)) {
-    $updates[] = "nisn = '" . $conn->real_escape_string($data->nisn) . "'";
+    $newNisn = $data->nisn;
+    $updates[] = "nisn = '" . $conn->real_escape_string($newNisn) . "'";
+    
+    // Sinkronisasi password dengan NISN baru jika peran adalah orang_tua dan password dikosongkan
+    $user_res = $conn->query("SELECT role FROM users WHERE id = $id LIMIT 1");
+    if ($user_res && $row = $user_res->fetch_assoc()) {
+        if ($row['role'] === 'orang_tua' && (!isset($data->password) || empty($data->password))) {
+            $hashedPassword = password_hash($newNisn, PASSWORD_BCRYPT);
+            $updates[] = "password = '$hashedPassword'";
+        }
+    }
 }
 if (isset($data->no_hp)) {
     $escapedNoHp = $conn->real_escape_string($data->no_hp);

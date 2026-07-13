@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 :: Masuk ke folder tempat file bat ini berada secara otomatis (mencegah error jika dipanggil dari folder lain)
-cd /d "%~dp0"
+cd /d "%~dp0.."
 
 echo ========================================================
 echo [MONAK] Mendeteksi IP Wi-Fi PC...

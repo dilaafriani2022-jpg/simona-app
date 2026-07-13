@@ -1,5 +1,5 @@
 <?php
-require 'backend/config.php';
+require '../config.php';
 $res = $conn->query("
 SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
 FROM information_schema.KEY_COLUMN_USAGE

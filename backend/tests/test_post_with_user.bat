@@ -7,5 +7,5 @@ curl -X POST http://127.0.0.1/monak/backend/manage_siswa.php ^
 
 echo.
 echo Checking activity log...
-cd /d c:\xampp6\htdocs\monak\backend
+cd /d "%~dp0.."
 php view_activities.php

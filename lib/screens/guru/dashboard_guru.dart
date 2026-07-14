@@ -157,7 +157,7 @@ class _DashboardGuruState extends State<DashboardGuru>
       if (idGuru != null && idKelas != null) {
         final checkRes  = await ApiService.fetch('manage_penilaian.php?id_guru=$idGuru&count=1');
         final anekdotRes = await ApiService.fetch('manage_anekdot.php?id_guru=$idGuru&count=1');
-        final karyaRes  = await ApiService.fetch('get_karya_anak.php?id_kelas=$idKelas&count=1');
+        final karyaRes  = await ApiService.fetch('manage_karya.php?id_kelas=$idKelas');
         final absensiAllRes = await ApiService.fetch('manage_absensi.php?id_kelas=$idKelas&count=1');
         final rppmRes = await ApiService.fetch('manage_rpp.php?type=rppm&id_kelas=$idKelas');
 
@@ -201,14 +201,14 @@ class _DashboardGuruState extends State<DashboardGuru>
   }
 
   void _onTabTap(int i) {
-    if (i == _currentIndex) return;
-    _fadeCtrl.reset();
-    setState(() => _currentIndex = i);
-    _fadeCtrl.forward();
-    if (i == 0) {
-      _loadDashboardData();
-    }
+  if (i == _currentIndex) return;
+  _fadeCtrl.reset();
+  setState(() => _currentIndex = i);
+  _fadeCtrl.forward();
+  if (i == 0 || i == 3) {
+    _loadDashboardData();
   }
+}
 
   // ═══════════════════════════════════════════════════════════════════════════
   // BUILD

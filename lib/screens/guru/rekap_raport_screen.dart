@@ -3509,7 +3509,7 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
     final name = widget.anak['nama_anak'] ?? '-';
     final nisn = widget.anak['nisn'] ?? '-';
     final kelas = widget.anak['nama_kelas'] ?? 'B';
-    final activeTA = '2024 / 2025';
+    final activeTA = widget.anak['tahun_ajaran'] ?? '2026/2027';
 
     final String kelasDisplay = _getCleanKelasName(kelas);
 

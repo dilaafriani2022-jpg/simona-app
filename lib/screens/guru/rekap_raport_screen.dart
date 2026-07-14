@@ -1856,21 +1856,11 @@ class _RekapRaportDetailScreenState extends State<RekapRaportDetailScreen>
     }
   }
 
-  Future<String?> _saveFileToDevice(Uint8List bytes, String filename) async {
+    Future<String?> _saveFileToDevice(Uint8List bytes, String filename) async {
     try {
       Directory? dir;
-      if (!kIsWeb && Platform.isAndroid) {
-        // Try direct public Download folder
-        final publicDownloadDir = Directory('/storage/emulated/0/Download');
-        if (await publicDownloadDir.exists()) {
-          dir = publicDownloadDir;
-        } else {
-          dir = await getDownloadsDirectory();
-          if (dir == null) {
-            dir = await getExternalStorageDirectory();
-          }
-        }
-      } else if (!kIsWeb && Platform.isIOS) {
+      if (!kIsWeb) {
+  
         dir = await getApplicationDocumentsDirectory();
       }
 

@@ -182,12 +182,15 @@ if ($res_anak) {
 }
 
 // Helper to get TM, MM, M counts for a list of aspects, month filter, and class filter
-function getRatingCounts($conn, $aspek_ids, $semester, $bulan_filter_val, $id_kelas_filter) {
+function getRatingCounts($conn, $aspek_ids, $semester, $bulan_filter_val, $id_kelas_filter, $tgl_mulai, $tgl_akhir) {
     $aspek_str = implode(',', $aspek_ids);
     $bulan_filter = "";
     if ($bulan_filter_val > 0) {
         $bulan_filter = " AND MONTH(pc.tanggal) = $bulan_filter_val ";
     }
+    
+    // Tambahkan filter rentang tanggal tahun ajaran aktif
+    $date_filter = " AND pc.tanggal BETWEEN '$tgl_mulai' AND '$tgl_akhir' ";
     
     $kelas_filter = "";
     if ($id_kelas_filter > 0) {
@@ -202,6 +205,7 @@ function getRatingCounts($conn, $aspek_ids, $semester, $bulan_filter_val, $id_ke
         WHERE tp.id_aspek IN ($aspek_str) 
           AND pc.tipe = 'checklist' 
           AND pc.semester = $semester
+          $date_filter
           $bulan_filter
           $kelas_filter
         GROUP BY pc.status
@@ -228,15 +232,15 @@ function getRatingCounts($conn, $aspek_ids, $semester, $bulan_filter_val, $id_ke
 
 // 3. STATISTIK PERKEMBANGAN ASPEK
 $aspek_stats = [
-    "agama" => getRatingCounts($conn, [1], $semester, $bulan_filter_val, $id_kelas_filter),
-    "jati_diri" => getRatingCounts($conn, [2, 5], $semester, $bulan_filter_val, $id_kelas_filter),
-    "steam" => getRatingCounts($conn, [3, 4, 6], $semester, $bulan_filter_val, $id_kelas_filter)
+    "agama" => getRatingCounts($conn, [1], $semester, $bulan_filter_val, $id_kelas_filter, $tgl_mulai, $tgl_akhir),
+    "jati_diri" => getRatingCounts($conn, [2, 5], $semester, $bulan_filter_val, $id_kelas_filter, $tgl_mulai, $tgl_akhir),
+    "steam" => getRatingCounts($conn, [3, 4, 6], $semester, $bulan_filter_val, $id_kelas_filter, $tgl_mulai, $tgl_akhir)
 ];
 
 // 4. STATISTIK ABSENSI SEMESTER
 $absensi_bulan_filter = "";
 if ($bulan_filter_val > 0) {
-    $absensi_bulan_filter = " AND MONTH(ab.tanggal) = $bulan_filter_val ";
+    $absensi_bulan_filter = " AND MONTH(ab.tanggal) = $bulan_filter_val AND ab.tanggal BETWEEN '$tgl_mulai' AND '$tgl_akhir' ";
 } else {
     $absensi_bulan_filter = " AND ab.tanggal BETWEEN '$tgl_mulai' AND '$tgl_akhir' ";
 }

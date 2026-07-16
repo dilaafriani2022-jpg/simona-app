@@ -7,8 +7,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     try {
         $anak_id = isset($_GET['id_anak']) ? (int)$_GET['id_anak'] : null;
         $bulan = isset($_GET['bulan']) ? (int)$_GET['bulan'] : date('m');
-        $tahun = isset($_GET['tahun']) ? (int)$_GET['tahun'] : date('Y');
         $semester = isset($_GET['semester']) ? (int)$_GET['semester'] : null;
+
+        // Membaca tahun ajaran dari kelas anak secara dinamis
+        $ta_tahun = '2026/2027';
+        if ($anak_id) {
+            $ta_sql = "SELECT ta.tahun 
+                       FROM anak a 
+                       LEFT JOIN kelas k ON a.id_kelas = k.id 
+                       LEFT JOIN tahun_ajaran ta ON k.id_tahun_ajaran = ta.id 
+                       WHERE a.id = $anak_id LIMIT 1";
+            $ta_res = $conn->query($ta_sql);
+            if ($ta_res && $ta_row = $ta_res->fetch_assoc()) {
+                if (!empty($ta_row['tahun'])) {
+                    $ta_tahun = $ta_row['tahun'];
+                }
+            }
+        }
+        $years = explode('/', $ta_tahun);
+        $year_sem1 = intval(trim($years[0]));
+        $year_sem2 = isset($years[1]) ? intval(trim($years[1])) : $year_sem1 + 1;
+        
+        // Tentukan tahun pencarian berdasarkan semester
+        $tahun = isset($_GET['tahun']) ? (int)$_GET['tahun'] : (($semester === 2) ? $year_sem2 : $year_sem1);
 
         if (!$anak_id) {
             http_response_code(400);

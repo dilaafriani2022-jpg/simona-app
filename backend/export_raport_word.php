@@ -69,10 +69,11 @@ $has_logo = ($logo_raw !== '');
 // 2. FETCH DATA ANAK & KELAS
 $anak = [];
 $stmt_anak = $conn->prepare("
-    SELECT a.*, k.nama_kelas, o.ayah_nama, o.ibu_nama, o.ayah_pekerjaan, o.ibu_pekerjaan, 
+    SELECT a.*, k.nama_kelas, ta.tahun AS tahun_ajaran, o.ayah_nama, o.ibu_nama, o.ayah_pekerjaan, o.ibu_pekerjaan, 
            o.no_hp as no_hp_ortu, o.rt_rw, o.kelurahan, o.kecamatan, o.kota, o.provinsi, o.kode_pos
     FROM anak a
     LEFT JOIN kelas k ON a.id_kelas = k.id
+    LEFT JOIN tahun_ajaran ta ON k.id_tahun_ajaran = ta.id
     LEFT JOIN users o ON a.id_ortu = o.id
     WHERE a.id = ?
     LIMIT 1
@@ -244,7 +245,15 @@ if (empty($refleksi_ortu)) {
 
 // 7. FETCH KEHADIRAN (SAKIT, IZIN, ALPA)
 $bulan_list = ($semester === 1) ? [7, 8, 9, 10, 11] : [1, 2, 3, 4, 5];
-$tahun_kehadiran = date('Y');
+
+// Membaca tahun ajaran dinamis (misal: "2026/2027")
+$ta_tahun = $anak['tahun_ajaran'] ?? '2026/2027';
+$years = explode('/', $ta_tahun);
+$year_sem1 = intval(trim($years[0]));
+$year_sem2 = isset($years[1]) ? intval(trim($years[1])) : $year_sem1 + 1;
+
+// Gunakan tahun pertama (2026) untuk Semester 1, dan tahun kedua (2027) untuk Semester 2
+$tahun_kehadiran = ($semester === 1) ? $year_sem1 : $year_sem2;
 
 $sakit = 0;
 $izin = 0;

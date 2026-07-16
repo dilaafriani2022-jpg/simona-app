@@ -512,7 +512,27 @@ class _ProsemTabState extends State<ProsemTab> {
                     ? null
                     : IconButton(
                         icon: const Icon(Icons.edit_note_rounded, color: _primary),
-                        onPressed: () => _showEditForm(mingguKe, item),
+                        onPressed: () async {
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (ctx) => const Center(
+                              child: CircularProgressIndicator(color: _primary),
+                            ),
+                          );
+                          try {
+                            final idKelas = widget.idKelas ?? 2;
+                            final res = await ApiService.fetch(
+                              'manage_prosem.php?id_kelas=$idKelas&semester=1&minggu_ke=$mingguKe',
+                            );
+                            if (context.mounted) Navigator.pop(context); // Close loading dialog
+                            if (res['status'] == 'success') {
+                              _showEditForm(mingguKe, res['data']);
+                            }
+                          } catch (e) {
+                            if (context.mounted) Navigator.pop(context); // Close loading dialog
+                          }
+                        },
                       ),
                 children: [
                   const Padding(

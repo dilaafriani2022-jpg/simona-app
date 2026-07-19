@@ -49,6 +49,13 @@ $sql = "INSERT INTO users (name, role, username, nip, nisn, email, password, no_
 
 try {
     if ($conn->query($sql) === TRUE) {
+        // ✅ Jika user adalah orang_tua, hubungkan ke anak yang memiliki NISN ini
+        if ($role === 'orang_tua' && isset($data->nisn) && !empty($data->nisn)) {
+            $insertedId = $conn->insert_id;
+            $escaped_nisn = $conn->real_escape_string($data->nisn);
+            $conn->query("UPDATE anak SET id_ortu = $insertedId WHERE nisn = '$escaped_nisn'");
+        }
+
         logActivity(
             getPdo(),
             "User ditambahkan",

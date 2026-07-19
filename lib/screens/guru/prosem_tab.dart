@@ -21,7 +21,8 @@ class _ProsemTabState extends State<ProsemTab> {
 
   bool _isLoading = true;
   List<dynamic> _prosemList = [];
-  final int _totalWeeks = 20;
+  final int _totalWeeks = 22;
+  int _selectedSemester = 1;
 
   @override
   void initState() {
@@ -33,7 +34,7 @@ class _ProsemTabState extends State<ProsemTab> {
     setState(() => _isLoading = true);
     try {
       final idKelas = widget.idKelas ?? 2;
-      final res = await ApiService.fetch('manage_prosem.php?id_kelas=$idKelas&semester=1');
+      final res = await ApiService.fetch('manage_prosem.php?id_kelas=$idKelas&semester=$_selectedSemester');
       if (res['status'] == 'success') {
         _prosemList = List<dynamic>.from(res['data'] ?? []);
       }
@@ -326,7 +327,7 @@ class _ProsemTabState extends State<ProsemTab> {
                             'action': 'save',
                             'id_kelas': idKelas,
                             'id_guru': widget.idGuru,
-                            'semester': 1,
+                            'semester': _selectedSemester,
                             'tahun_ajaran': '2025/2026',
                             'bulan': selBulan,
                             'minggu_ke': mingguKe,
@@ -446,119 +447,165 @@ class _ProsemTabState extends State<ProsemTab> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: _primary));
-    }
-
     final prosemMap = _getProsemMap();
 
     return Scaffold(
       backgroundColor: _bg,
-      body: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-        itemCount: _totalWeeks,
-        itemBuilder: (ctx, index) {
-          final mingguKe = index + 1;
-          final item = prosemMap[mingguKe];
-
-          final String bulan = item?['bulan'] ?? '-';
-          final String tglMulai = item?['tanggal_mulai'] ?? '';
-          final String tglSelesai = item?['tanggal_selesai'] ?? '';
-          final String rentangTgl = (tglMulai.isNotEmpty && tglSelesai.isNotEmpty) ? '$tglMulai s/d $tglSelesai' : '-';
-          final String topik = item?['topik'] ?? 'Belum Diisi';
-          final String subTopik = item?['sub_topik'] ?? '-';
-          final String subSubTopik = item?['sub_sub_topik'] ?? '-';
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color: _surface,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: _border),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 3)),
-              ],
-            ),
-            child: Theme(
-              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
-                leading: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: _primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(
-                    child: Text(
-                      'W$mingguKe',
-                      style: const TextStyle(color: _primaryDark, fontWeight: FontWeight.bold, fontSize: 14),
+      body: Column(
+        children: [
+          // Filter Semester
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            color: _surface,
+            child: Row(
+              children: [
+                const Icon(Icons.calendar_month_rounded, color: _primary),
+                const SizedBox(width: 12),
+                const Text('Pilih Semester:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5, color: _navy)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: _bg,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _border),
                     ),
-                  ),
-                ),
-                title: Text(
-                  topik,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14.5,
-                    color: topik == 'Belum Diisi' ? Colors.grey.shade400 : _navy,
-                  ),
-                ),
-                subtitle: Text(
-                  'Bulan: $bulan ($rentangTgl)',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                ),
-                trailing: widget.isReadOnly
-                    ? null
-                    : IconButton(
-                        icon: const Icon(Icons.edit_note_rounded, color: _primary),
-                        onPressed: () async {
-                          showDialog(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (ctx) => const Center(
-                              child: CircularProgressIndicator(color: _primary),
-                            ),
-                          );
-                          try {
-                            final idKelas = widget.idKelas ?? 2;
-                            final res = await ApiService.fetch(
-                              'manage_prosem.php?id_kelas=$idKelas&semester=1&minggu_ke=$mingguKe',
-                            );
-                            if (context.mounted) Navigator.pop(context); // Close loading dialog
-                            if (res['status'] == 'success') {
-                              _showEditForm(mingguKe, res['data']);
-                            }
-                          } catch (e) {
-                            if (context.mounted) Navigator.pop(context); // Close loading dialog
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: _selectedSemester,
+                        isExpanded: true,
+                        items: const [
+                          DropdownMenuItem(value: 1, child: Text('Semester 1', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+                          DropdownMenuItem(value: 2, child: Text('Semester 2', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _selectedSemester = val;
+                            });
+                            _loadData();
                           }
                         },
                       ),
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Divider(height: 1),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildDetailRow('Sub Topik / Tema:', subTopik),
-                        const SizedBox(height: 10),
-                        _buildDetailRow('Sub-Sub Topik:', subSubTopik),
-                        if (item?['catatan'] != null && item['catatan'].toString().trim().isNotEmpty) ...[
-                          const SizedBox(height: 10),
-                          _buildDetailRow('Catatan Khusus:', item['catatan']),
-                        ],
-                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          );
-        },
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: _primary))
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+                    itemCount: _totalWeeks,
+                    itemBuilder: (ctx, index) {
+                      final mingguKe = index + 1;
+                      final item = prosemMap[mingguKe];
+
+                      final String bulan = item?['bulan'] ?? '-';
+                      final String tglMulai = item?['tanggal_mulai'] ?? '';
+                      final String tglSelesai = item?['tanggal_selesai'] ?? '';
+                      final String rentangTgl = (tglMulai.isNotEmpty && tglSelesai.isNotEmpty) ? '$tglMulai s/d $tglSelesai' : '-';
+                      final String topik = item?['topik'] ?? 'Belum Diisi';
+                      final String subTopik = item?['sub_topik'] ?? '-';
+                      final String subSubTopik = item?['sub_sub_topik'] ?? '-';
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: _surface,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: _border),
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 3)),
+                          ],
+                        ),
+                        child: Theme(
+                          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                          child: ExpansionTile(
+                            leading: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: _primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'W$mingguKe',
+                                  style: const TextStyle(color: _primaryDark, fontWeight: FontWeight.bold, fontSize: 14),
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              topik,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14.5,
+                                color: topik == 'Belum Diisi' ? Colors.grey.shade400 : _navy,
+                              ),
+                            ),
+                            subtitle: Text(
+                              'Bulan: $bulan ($rentangTgl)',
+                              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                            ),
+                            trailing: widget.isReadOnly
+                                ? null
+                                : IconButton(
+                                    icon: const Icon(Icons.edit_note_rounded, color: _primary),
+                                    onPressed: () async {
+                                      showDialog(
+                                        context: context,
+                                        barrierDismissible: false,
+                                        builder: (ctx) => const Center(
+                                          child: CircularProgressIndicator(color: _primary),
+                                        ),
+                                      );
+                                      try {
+                                        final idKelas = widget.idKelas ?? 2;
+                                        final res = await ApiService.fetch(
+                                          'manage_prosem.php?id_kelas=$idKelas&semester=$_selectedSemester&minggu_ke=$mingguKe',
+                                        );
+                                        if (context.mounted) Navigator.pop(context); // Close loading dialog
+                                        if (res['status'] == 'success') {
+                                          _showEditForm(mingguKe, res['data']);
+                                        }
+                                      } catch (e) {
+                                        if (context.mounted) Navigator.pop(context); // Close loading dialog
+                                      }
+                                    },
+                                  ),
+                            children: [
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                                child: Divider(height: 1),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildDetailRow('Sub Topik / Tema:', subTopik),
+                                    const SizedBox(height: 10),
+                                    _buildDetailRow('Sub-Sub Topik:', subSubTopik),
+                                    if (item?['catatan'] != null && item['catatan'].toString().trim().isNotEmpty) ...[
+                                      const SizedBox(height: 10),
+                                      _buildDetailRow('Catatan Khusus:', item['catatan']),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }

@@ -618,7 +618,7 @@ class _RefleksiGuruScreenState extends State<RefleksiGuruScreen>
                       DropdownButtonFormField<String>(
                         value: mingguKe.toString(),
                         decoration: _inputDecoration(),
-                        items: List.generate(20, (i) => DropdownMenuItem(value: '${i + 1}', child: Text('Minggu ${i + 1}'))).toList(),
+                        items: List.generate(22, (i) => DropdownMenuItem(value: '${i + 1}', child: Text('Minggu ${i + 1}'))).toList(),
                         onChanged: (v) => setStateDialog(() => onMingguChanged(int.tryParse(v ?? '1') ?? 1)),
                       ),
                     ],

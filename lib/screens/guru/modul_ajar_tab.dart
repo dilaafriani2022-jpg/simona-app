@@ -19,6 +19,7 @@ class _ModulAjarTabState extends State<ModulAjarTab> {
   static const Color _surface = Colors.white;
   static const Color _border = Color(0xFFF0E8DF);
 
+  int _selectedSemester = 1;
   int _selectedWeek = 1;
   bool _isLoading = true;
   Map<String, dynamic>? _modulData;
@@ -61,12 +62,7 @@ class _ModulAjarTabState extends State<ModulAjarTab> {
   }
 
   String _getKelompokLabel(String? namaKelas) {
-    if (namaKelas == null) return 'Kelompok B';
-    if (namaKelas.toLowerCase().contains('kelompok a')) {
-      return 'Kelompok A';
-    } else if (namaKelas.toLowerCase().contains('kelompok b')) {
-      return 'Kelompok B';
-    }
+    if (namaKelas == null || namaKelas.isEmpty) return 'Kelompok B';
     return namaKelas;
   }
 
@@ -76,6 +72,7 @@ class _ModulAjarTabState extends State<ModulAjarTab> {
     try {
       // 0. Fetch class details to set default Kelompok
       String? className;
+      int? studentCount;
       final classRes = await ApiService.fetch('manage_kelas.php');
       if (classRes['status'] == 'success' && classRes['data'] is List) {
         final classes = classRes['data'] as List;
@@ -85,11 +82,12 @@ class _ModulAjarTabState extends State<ModulAjarTab> {
         );
         if (matchingClass != null) {
           className = matchingClass['nama_kelas'];
+          studentCount = int.tryParse(matchingClass['jumlah_anak']?.toString() ?? '');
         }
       }
 
       // 1. Fetch linked Prosem data
-      final prosemRes = await ApiService.fetch('manage_prosem.php?id_kelas=$idKelas&semester=1&minggu_ke=$_selectedWeek');
+      final prosemRes = await ApiService.fetch('manage_prosem.php?id_kelas=$idKelas&semester=$_selectedSemester&minggu_ke=$_selectedWeek');
       if (prosemRes['status'] == 'success' && prosemRes['data'] != null) {
         _linkedProsem = prosemRes['data'];
         _topikCtrl.text = _linkedProsem!['topik'] ?? '';
@@ -103,7 +101,7 @@ class _ModulAjarTabState extends State<ModulAjarTab> {
       }
 
       // 2. Fetch Modul Ajar data
-      final modulRes = await ApiService.fetch('manage_modul_ajar.php?id_kelas=$idKelas&semester=1&minggu_ke=$_selectedWeek');
+      final modulRes = await ApiService.fetch('manage_modul_ajar.php?id_kelas=$idKelas&semester=$_selectedSemester&minggu_ke=$_selectedWeek');
       if (modulRes['status'] == 'success' && modulRes['data'] != null) {
         _modulData = modulRes['data'];
         
@@ -112,7 +110,9 @@ class _ModulAjarTabState extends State<ModulAjarTab> {
         _jenjangCtrl.text = _modulData!['jenjang'] ?? 'TK';
         _sekolahCtrl.text = _modulData!['nama_sekolah'] ?? 'TK Negeri 2 Bengkalis';
         _alokasiCtrl.text = _modulData!['durasi'] ?? '7.30 - 10.40 WIB';
-        _siswaCtrl.text = _modulData!['jumlah_anak'] ?? '17 Anak';
+        _siswaCtrl.text = (_modulData!['jumlah_anak'] != null && _modulData!['jumlah_anak'].toString().isNotEmpty)
+            ? _modulData!['jumlah_anak']
+            : (studentCount != null ? '$studentCount Anak' : '0 Anak');
         _modelCtrl.text = _modulData!['model_pembelajaran'] ?? 'Tatap Muka';
 
         // Prioritize Prosem over saved Modul Ajar data for topic identity if Prosem is available
@@ -145,6 +145,7 @@ class _ModulAjarTabState extends State<ModulAjarTab> {
       } else {
         _modulData = null;
         _kelompokCtrl.text = _getKelompokLabel(className);
+        _siswaCtrl.text = studentCount != null ? '$studentCount Anak' : '0 Anak';
         _atpCtrl.clear();
         _cpCtrl.clear();
         _kataKunciCtrl.clear();
@@ -178,7 +179,7 @@ class _ModulAjarTabState extends State<ModulAjarTab> {
         'action': 'save',
         'id_kelas': idKelas,
         'id_guru': widget.idGuru,
-        'semester': 1,
+        'semester': _selectedSemester,
         'minggu_ke': _selectedWeek,
         'kelompok': _kelompokCtrl.text.trim(),
         'jenjang': _jenjangCtrl.text.trim(),
@@ -232,16 +233,43 @@ class _ModulAjarTabState extends State<ModulAjarTab> {
       backgroundColor: _bg,
       body: Column(
         children: [
-          // Week Picker
+          // Semester & Week Picker
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             color: _surface,
             child: Row(
               children: [
-                const Icon(Icons.class_rounded, color: _primary),
-                const SizedBox(width: 12),
-                const Text('Pilih Minggu:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5, color: _navy)),
-                const SizedBox(width: 12),
+                // Semester selector
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: _bg,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _border),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: _selectedSemester,
+                        isExpanded: true,
+                        items: const [
+                          DropdownMenuItem(value: 1, child: Text('Semester 1', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5))),
+                          DropdownMenuItem(value: 2, child: Text('Semester 2', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5))),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _selectedSemester = val;
+                            });
+                            _loadWeekData();
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // Week selector
                 Expanded(
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -254,10 +282,10 @@ class _ModulAjarTabState extends State<ModulAjarTab> {
                       child: DropdownButton<int>(
                         value: _selectedWeek,
                         isExpanded: true,
-                        items: List.generate(20, (i) => i + 1).map((w) {
+                        items: List.generate(22, (i) => i + 1).map((w) {
                           return DropdownMenuItem<int>(
                             value: w,
-                            child: Text('Minggu $w', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            child: Text('Minggu $w', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
                           );
                         }).toList(),
                         onChanged: (val) {

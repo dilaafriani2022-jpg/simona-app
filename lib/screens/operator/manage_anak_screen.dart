@@ -218,9 +218,24 @@ class _ManageAnakScreenState extends State<ManageAnakScreen> {
             const SizedBox(height: 6),
             GestureDetector(
               onTap: () async {
+                DateTime first = DateTime(2010);
+                DateTime last = DateTime.now();
+                DateTime initial = DateTime(2018);
+                if (tanggalCtrl.text.isNotEmpty) {
+                  final parsed = DateTime.tryParse(tanggalCtrl.text);
+                  if (parsed != null) {
+                    if (parsed.isBefore(first)) {
+                      first = DateTime(parsed.year - 1);
+                    }
+                    if (parsed.isAfter(last)) {
+                      last = parsed;
+                    }
+                    initial = parsed;
+                  }
+                }
                 final picked = await showDatePicker(
-                  context: context, initialDate: DateTime(2018),
-                  firstDate: DateTime(2010), lastDate: DateTime.now(),
+                  context: context, initialDate: initial,
+                  firstDate: first, lastDate: last,
                   builder: (c, child) => Theme(
                     data: Theme.of(c).copyWith(colorScheme: const ColorScheme.light(primary: _violet)),
                     child: child!));

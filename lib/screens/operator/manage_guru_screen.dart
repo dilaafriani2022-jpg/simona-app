@@ -904,8 +904,23 @@ class _ManageGuruScreenState extends State<ManageGuruScreen>
   Widget _datePicker({required BuildContext ctx, required TextEditingController ctrl, required StateSetter setSheet}) =>
     GestureDetector(
       onTap: () async {
+        DateTime first = DateTime(1950);
+        DateTime last = DateTime(2005);
+        DateTime initial = DateTime(1985);
+        if (ctrl.text.isNotEmpty) {
+          final parsed = DateTime.tryParse(ctrl.text);
+          if (parsed != null) {
+            if (parsed.isBefore(first)) {
+              first = DateTime(parsed.year - 1);
+            }
+            if (parsed.isAfter(last)) {
+              last = parsed;
+            }
+            initial = parsed;
+          }
+        }
         final picked = await showDatePicker(context: ctx,
-          initialDate: DateTime(1985), firstDate: DateTime(1950), lastDate: DateTime(2005),
+          initialDate: initial, firstDate: first, lastDate: last,
           builder: (c, child) => Theme(data: Theme.of(c).copyWith(colorScheme: const ColorScheme.light(primary: _primary)), child: child!));
         if (picked != null) setSheet(() => ctrl.text = '${picked.year}-${picked.month.toString().padLeft(2,'0')}-${picked.day.toString().padLeft(2,'0')}');
       },

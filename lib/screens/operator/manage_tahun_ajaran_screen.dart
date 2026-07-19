@@ -143,138 +143,231 @@ class _ManageTahunAjaranScreenState extends State<ManageTahunAjaranScreen> {
       return '$y/${y + 1}';
     });
 
+    StateSetter? sheetState;
+
+    void updateDatesFromTahun() {
+      final text = tahunCtrl.text.trim();
+      final match = RegExp(r'^(\d{4})\s*/\s*(\d{4})$').firstMatch(text);
+      if (match != null) {
+        final year1Str = match.group(1)!;
+        final year2Str = match.group(2)!;
+        final y1 = int.parse(year1Str);
+        final y2 = int.parse(year2Str);
+
+        bool hasChanges = false;
+        String? newM1 = tglM1;
+        String? newA1 = tglA1;
+        String? newM2 = tglM2;
+        String? newA2 = tglA2;
+
+        if (newM1 == null || newM1.isEmpty) {
+          newM1 = '$year1Str-07-14';
+          hasChanges = true;
+        } else {
+          final parsed = DateTime.tryParse(newM1);
+          if (parsed != null && parsed.year != y1) {
+            newM1 = '$year1Str-${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')}';
+            hasChanges = true;
+          }
+        }
+
+        if (newA1 == null || newA1.isEmpty) {
+          newA1 = '$year1Str-12-19';
+          hasChanges = true;
+        } else {
+          final parsed = DateTime.tryParse(newA1);
+          if (parsed != null && parsed.year != y1) {
+            newA1 = '$year1Str-${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')}';
+            hasChanges = true;
+          }
+        }
+
+        if (newM2 == null || newM2.isEmpty) {
+          newM2 = '$year2Str-01-05';
+          hasChanges = true;
+        } else {
+          final parsed = DateTime.tryParse(newM2);
+          if (parsed != null && parsed.year != y2) {
+            newM2 = '$year2Str-${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')}';
+            hasChanges = true;
+          }
+        }
+
+        if (newA2 == null || newA2.isEmpty) {
+          newA2 = '$year2Str-06-20';
+          hasChanges = true;
+        } else {
+          final parsed = DateTime.tryParse(newA2);
+          if (parsed != null && parsed.year != y2) {
+            newA2 = '$year2Str-${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')}';
+            hasChanges = true;
+          }
+        }
+
+        if (hasChanges && sheetState != null) {
+          sheetState!(() {
+            tglM1 = newM1;
+            tglA1 = newA1;
+            tglM2 = newM2;
+            tglA2 = newA2;
+          });
+        }
+      }
+    }
+
+    tahunCtrl.addListener(updateDatesFromTahun);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheet) => Container(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-          decoration: const BoxDecoration(
-            color: Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
+        builder: (ctx, setSheet) {
+          sheetState = setSheet;
 
-            // Header
-            Container(
-              decoration: BoxDecoration(
-                color: _surface,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
-              ),
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
-              child: Column(children: [
-                Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(20))),
-                Row(children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: _primary.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-                    child: Icon(isEdit ? Icons.edit_rounded : Icons.add_rounded, color: _primary, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(isEdit ? 'Edit Tahun Ajaran' : 'Tambah Tahun Ajaran',
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 17)),
-                    Text('Lengkapi data tahun ajaran',
-                      style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade500)),
-                  ])),
-                  GestureDetector(
-                    onTap: () => Navigator.pop(ctx),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(10)),
-                      child: Icon(Icons.close_rounded, size: 18, color: Colors.grey.shade600),
-                    ),
-                  ),
-                ]),
-              ]),
+          int? year1;
+          int? year2;
+          final match = RegExp(r'^(\d{4})\s*/\s*(\d{4})$').firstMatch(tahunCtrl.text.trim());
+          if (match != null) {
+            year1 = int.tryParse(match.group(1) ?? '');
+            year2 = int.tryParse(match.group(2) ?? '');
+          }
+
+          return Container(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
             ),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
 
-            // Form
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-  
-                  // ── Tahun ─────────────────────────────────────
-                  _formSection(
-                    icon: Icons.calendar_month_rounded, title: 'Periode Tahun Ajaran', color: _primary,
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      // Preset chips
-                      _fLabel('Pilih Cepat'),
-                      Wrap(spacing: 8, runSpacing: 8, children: presets.map((p) {
-                        final sel = tahunCtrl.text == p;
-                        return GestureDetector(
-                          onTap: () => setSheet(() => tahunCtrl.text = p),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                            decoration: BoxDecoration(
-                              color: sel ? _primary : Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: sel ? _primary : Colors.grey.shade200),
+              // Header
+              Container(
+                decoration: BoxDecoration(
+                  color: _surface,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+                ),
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
+                child: Column(children: [
+                  Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(20))),
+                  Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(color: _primary.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                      child: Icon(isEdit ? Icons.edit_rounded : Icons.add_rounded, color: _primary, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(isEdit ? 'Edit Tahun Ajaran' : 'Tambah Tahun Ajaran',
+                        style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 17)),
+                      Text('Lengkapi data tahun ajaran',
+                        style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade500)),
+                    ])),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(ctx),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(10)),
+                        child: Icon(Icons.close_rounded, size: 18, color: Colors.grey.shade600),
+                      ),
+                    ),
+                  ]),
+                ]),
+              ),
+
+              // Form
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    
+                    // ── Tahun ─────────────────────────────────────
+                    _formSection(
+                      icon: Icons.calendar_month_rounded, title: 'Periode Tahun Ajaran', color: _primary,
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        // Preset chips
+                        _fLabel('Pilih Cepat'),
+                        Wrap(spacing: 8, runSpacing: 8, children: presets.map((p) {
+                          final sel = tahunCtrl.text == p;
+                          return GestureDetector(
+                            onTap: () => setSheet(() => tahunCtrl.text = p),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                              decoration: BoxDecoration(
+                                color: sel ? _primary : Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: sel ? _primary : Colors.grey.shade200),
+                              ),
+                              child: Text(p, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                                color: sel ? Colors.white : _slate)),
                             ),
-                            child: Text(p, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
-                              color: sel ? Colors.white : _slate)),
-                          ),
-                        );
-                      }).toList()),
-                      const SizedBox(height: 12),
-                      _fLabel('Tahun Ajaran *'),
-                      _fField(tahunCtrl, Icons.calendar_today_rounded, 'Misal: 2025/2026'),
-                      const SizedBox(height: 4),
-                      Text('Format: TAHUN_MULAI/TAHUN_SELESAI', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-                    ]),
-                  ),
-                  const SizedBox(height: 12),
+                          );
+                        }).toList()),
+                        const SizedBox(height: 12),
+                        _fLabel('Tahun Ajaran *'),
+                        _fField(tahunCtrl, Icons.calendar_today_rounded, 'Misal: 2025/2026'),
+                        const SizedBox(height: 4),
+                        Text('Format: TAHUN_MULAI/TAHUN_SELESAI', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                      ]),
+                    ),
+                    const SizedBox(height: 12),
 
-                  // ── Tanggal Semester Ganjil (Semester 1) ──────────────────
-                  _formSection(
-                    icon: Icons.calendar_today_rounded, title: 'Semester 1 (Ganjil)', color: _primary,
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      _fLabel('Tanggal Mulai Semester Ganjil'),
-                      _fDatePickerField(
-                        context: context,
-                        value: tglM1,
-                        hint: 'Pilih Tanggal Mulai',
-                        onSelected: (date) => setSheet(() => tglM1 = date),
-                      ),
-                      const SizedBox(height: 12),
-                      _fLabel('Tanggal Akhir Semester Ganjil'),
-                      _fDatePickerField(
-                        context: context,
-                        value: tglA1,
-                        hint: 'Pilih Tanggal Akhir',
-                        onSelected: (date) => setSheet(() => tglA1 = date),
-                      ),
-                    ]),
-                  ),
-                  const SizedBox(height: 12),
+                    // ── Tanggal Semester Ganjil (Semester 1) ──────────────────
+                    _formSection(
+                      icon: Icons.calendar_today_rounded, title: 'Semester 1 (Ganjil)', color: _primary,
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        _fLabel('Tanggal Mulai Semester Ganjil'),
+                        _fDatePickerField(
+                          context: context,
+                          value: tglM1,
+                          hint: 'Pilih Tanggal Mulai',
+                          onSelected: (date) => setSheet(() => tglM1 = date),
+                          defaultYear: year1,
+                          defaultMonth: 7,
+                        ),
+                        const SizedBox(height: 12),
+                        _fLabel('Tanggal Akhir Semester Ganjil'),
+                        _fDatePickerField(
+                          context: context,
+                          value: tglA1,
+                          hint: 'Pilih Tanggal Akhir',
+                          onSelected: (date) => setSheet(() => tglA1 = date),
+                          defaultYear: year1,
+                          defaultMonth: 12,
+                        ),
+                      ]),
+                    ),
+                    const SizedBox(height: 12),
 
-                  // ── Tanggal Semester Genap (Semester 2) ───────────────────
-                  _formSection(
-                    icon: Icons.calendar_today_rounded, title: 'Semester 2 (Genap)', color: _primary,
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      _fLabel('Tanggal Mulai Semester Genap'),
-                      _fDatePickerField(
-                        context: context,
-                        value: tglM2,
-                        hint: 'Pilih Tanggal Mulai',
-                        onSelected: (date) => setSheet(() => tglM2 = date),
-                      ),
-                      const SizedBox(height: 12),
-                      _fLabel('Tanggal Akhir Semester Genap'),
-                      _fDatePickerField(
-                        context: context,
-                        value: tglA2,
-                        hint: 'Pilih Tanggal Akhir',
-                        onSelected: (date) => setSheet(() => tglA2 = date),
-                      ),
-                    ]),
-                  ),
-                  const SizedBox(height: 12),
+                    // ── Tanggal Semester Genap (Semester 2) ───────────────────
+                    _formSection(
+                      icon: Icons.calendar_today_rounded, title: 'Semester 2 (Genap)', color: _primary,
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        _fLabel('Tanggal Mulai Semester Genap'),
+                        _fDatePickerField(
+                          context: context,
+                          value: tglM2,
+                          hint: 'Pilih Tanggal Mulai',
+                          onSelected: (date) => setSheet(() => tglM2 = date),
+                          defaultYear: year2 ?? (year1 != null ? year1 + 1 : null),
+                          defaultMonth: 1,
+                        ),
+                        const SizedBox(height: 12),
+                        _fLabel('Tanggal Akhir Semester Genap'),
+                        _fDatePickerField(
+                          context: context,
+                          value: tglA2,
+                          hint: 'Pilih Tanggal Akhir',
+                          onSelected: (date) => setSheet(() => tglA2 = date),
+                          defaultYear: year2 ?? (year1 != null ? year1 + 1 : null),
+                          defaultMonth: 6,
+                        ),
+                      ]),
+                    ),
+                    const SizedBox(height: 12),
   
                   // ── Status ────────────────────────────────────
                   _formSection(
@@ -356,12 +449,12 @@ class _ManageTahunAjaranScreenState extends State<ManageTahunAjaranScreen> {
                       'tanggal_mulai_semester_2': tglM2,
                       'tanggal_akhir_semester_2': tglA2,
                     };
-                    if (isEdit) data['id'] = tahun!['id'];
+                    if (isEdit) data['id'] = tahun['id'];
 
                     // OFFLINE
                     if (!_isConnected) {
                       if (isEdit) {
-                        final idx = _tahunList.indexWhere((e) => e['id'] == tahun!['id']);
+                        final idx = _tahunList.indexWhere((e) => e['id'] == tahun['id']);
                         if (idx != -1) setState(() => _tahunList[idx] = {..._tahunList[idx], ...data});
                       } else {
                         // ✅ FIX: toString() agar tidak type error
@@ -397,10 +490,11 @@ class _ManageTahunAjaranScreenState extends State<ManageTahunAjaranScreen> {
               ]),
             ),
           ]),
-        ),
-      ),
-    );
-  }
+        );
+      },
+    ),
+  );
+}
 
   Widget _statusOption(String value, String label, IconData icon, Color color,
       String current, ValueChanged<String> onChanged) {
@@ -749,15 +843,31 @@ class _ManageTahunAjaranScreenState extends State<ManageTahunAjaranScreen> {
     required String? value,
     required String hint,
     required ValueChanged<String> onSelected,
+    int? defaultYear,
+    int? defaultMonth,
   }) {
     return GestureDetector(
       onTap: () async {
-        final initial = value != null ? DateTime.tryParse(value) ?? DateTime.now() : DateTime.now();
+        final initial = value != null
+            ? DateTime.tryParse(value) ?? DateTime.now()
+            : (defaultYear != null && defaultMonth != null
+                ? DateTime(defaultYear, defaultMonth, 1)
+                : DateTime.now());
+
+        int minYear = initial.year;
+        int maxYear = initial.year;
+        if (defaultYear != null) {
+          if (defaultYear < minYear) minYear = defaultYear;
+          if (defaultYear > maxYear) maxYear = defaultYear;
+        }
+        final firstDate = DateTime(minYear - 5);
+        final lastDate = DateTime(maxYear + 5);
+
         final picked = await showDatePicker(
           context: context,
           initialDate: initial,
-          firstDate: DateTime(2020),
-          lastDate: DateTime(2035),
+          firstDate: firstDate,
+          lastDate: lastDate,
           builder: (context, child) {
             return Theme(
               data: Theme.of(context).copyWith(

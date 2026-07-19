@@ -6,7 +6,7 @@ $user = "root";
 $pass = "";
 $db   = "monak_db";
 
-echo "=== DIAGNOSIS get_kehadiran_ortu.php LOGIC ===\n\n";
+echo "=== DATABASE SCHEMA RELATION AUDIT ===\n\n";
 
 $conn = @new mysqli($host, $user, $pass, $db);
 if ($conn->connect_error) {
@@ -14,93 +14,102 @@ if ($conn->connect_error) {
     exit();
 }
 
-$anak_id = 1;
-$bulan = 1;
-$semester = 1;
+echo "✅ Berhasil terhubung ke monak_db\n\n";
 
-// 1. Cek prosem date range
-$use_academic_range = false;
-$start_date = null;
-$end_date = null;
+// 1. Ambil daftar semua tabel
+$tables = [];
+$res = $conn->query("SHOW TABLES");
+while ($row = $res->fetch_row()) {
+    $tables[] = $row[0];
+}
 
-$class_sql = "SELECT id_kelas FROM anak WHERE id = $anak_id LIMIT 1";
-$class_res = $conn->query($class_sql);
-if ($class_res && $class_row = $class_res->fetch_assoc()) {
-    $id_kelas = (int)$class_row['id_kelas'];
-    echo "👦 Anak ID: $anak_id, Kelas ID: $id_kelas\n";
-    
-    if ($id_kelas > 0) {
-        $min_week = ($bulan - 1) * 4 + 1;
-        $max_week = $bulan * 4;
-        echo "📅 Filter Minggu Ke: $min_week s/d $max_week\n";
+echo "📂 Daftar Tabel yang Ditemukan (" . count($tables) . "):\n";
+foreach ($tables as $t) {
+    echo " - $t\n";
+}
+echo "\n" . str_repeat("=", 50) . "\n\n";
+
+// 2. Audit Foreign Keys yang Ada
+echo "🔍 FOREIGN KEY CONSTRAINTS YANG SUDAH ADA:\n\n";
+$fk_sql = "
+    SELECT 
+        TABLE_NAME, 
+        COLUMN_NAME, 
+        CONSTRAINT_NAME, 
+        REFERENCED_TABLE_NAME, 
+        REFERENCED_COLUMN_NAME 
+    FROM 
+        information_schema.KEY_COLUMN_USAGE 
+    WHERE 
+        TABLE_SCHEMA = '$db' 
+        AND REFERENCED_TABLE_NAME IS NOT NULL
+";
+$fk_res = $conn->query($fk_sql);
+$existing_fks = [];
+if ($fk_res) {
+    while ($row = $fk_res->fetch_assoc()) {
+        echo " 🔗 Tabel [{$row['TABLE_NAME']}] kolom [{$row['COLUMN_NAME']}]\n";
+        echo "    ➔ Merujuk ke [{$row['REFERENCED_TABLE_NAME']}] kolom [{$row['REFERENCED_COLUMN_NAME']}]\n";
+        echo "    (Nama Constraint: {$row['CONSTRAINT_NAME']})\n\n";
         
-        $date_sql = "SELECT MIN(tanggal_mulai) as start_d, MAX(tanggal_selesai) as end_d 
-                     FROM prosem 
-                     WHERE id_kelas = $id_kelas 
-                       AND semester = $semester 
-                       AND minggu_ke BETWEEN $min_week AND $max_week";
-        $date_res = $conn->query($date_sql);
-        if ($date_res && $date_row = $date_res->fetch_assoc()) {
-            $start_date = $date_row['start_d'];
-            $end_date = $date_row['end_d'];
-            echo "🔍 Prosem Date Range: $start_date s/d $end_date\n";
-            if ($start_date && $end_date) {
-                $use_academic_range = true;
+        $existing_fks[$row['TABLE_NAME']][$row['COLUMN_NAME']] = [
+            'ref_table' => $row['REFERENCED_TABLE_NAME'],
+            'ref_col' => $row['REFERENCED_COLUMN_NAME']
+        ];
+    }
+}
+
+echo str_repeat("=", 50) . "\n\n";
+
+// 3. Deteksi Kolom Relasional yang Kehilangan Foreign Key
+echo "⚠️ DETEKSI KOLOM ID RELASIONAL TANPA FOREIGN KEY CONSTRAINTS:\n\n";
+
+$found_missing = false;
+foreach ($tables as $table) {
+    $cols_res = $conn->query("DESCRIBE `$table`");
+    if (!$cols_res) continue;
+    
+    while ($col = $cols_res->fetch_assoc()) {
+        $col_name = $col['Field'];
+        
+        // Cari kolom yang namanya berawalan "id_" atau berakhiran "_id" (tapi bukan primary key "id")
+        $is_relational_name = (strpos($col_name, 'id_') === 0 || substr($col_name, -3) === '_id') && $col_name !== 'id';
+        
+        if ($is_relational_name) {
+            // Cek apakah sudah terdaftar sebagai foreign key
+            $has_fk = isset($existing_fks[$table][$col_name]);
+            
+            if (!$has_fk) {
+                $found_missing = true;
+                
+                // Tebak tabel tujuan berdasarkan nama kolom
+                $guessed_table = '';
+                if (strpos($col_name, 'id_') === 0) {
+                    $guessed_table = substr($col_name, 3);
+                } elseif (substr($col_name, -3) === '_id') {
+                    $guessed_table = substr($col_name, 0, -3);
+                }
+                
+                // Koreksi beberapa nama tabel (jika ada singkatan atau nama khusus)
+                if ($guessed_table === 'ortu') $guessed_table = 'orang_tua';
+                if ($guessed_table === 'guru') $guessed_table = 'users'; // Guru di sini akunnya merujuk ke users.id
+                
+                $status_msg = " [KOSONG/BELUM ADA]";
+                if (in_array($guessed_table, $tables)) {
+                    $status_msg = " ➔ (Tabel Tujuan Terdeteksi: `$guessed_table`)";
+                } else {
+                    $status_msg = " ➔ (Tabel Tujuan Tidak Jelas: `$guessed_table`)";
+                }
+                
+                echo " ❌ Tabel [`$table`] ➔ Kolom [`$col_name`]$status_msg\n";
             }
         }
     }
 }
 
-// 2. Query Kehadiran
-$sql = "SELECT
-            a.id,
-            a.id_anak,
-            a.tanggal,
-            a.status
-        FROM absensi a
-        WHERE a.id_anak = $anak_id";
-
-if ($use_academic_range) {
-    $sql .= " AND a.tanggal BETWEEN '$start_date' AND '$end_date'";
-    echo "⚙️ Menggunakan rentang tanggal akademik (Prosem)\n";
-} else {
-    $ta_sql = "SELECT ta.tahun FROM anak a LEFT JOIN kelas k ON a.id_kelas = k.id LEFT JOIN tahun_ajaran ta ON k.id_tahun_ajaran = ta.id WHERE a.id = $anak_id LIMIT 1";
-    $ta_res = $conn->query($ta_sql);
-    $ta_tahun = '2026/2027';
-    if ($ta_res && $ta_row = $ta_res->fetch_assoc()) {
-        $ta_tahun = $ta_row['tahun'] ?? '2026/2027';
-    }
-    $years = explode('/', $ta_tahun);
-    $year_sem1 = intval(trim($years[0]));
-    $year_sem2 = isset($years[1]) ? intval(trim($years[1])) : $year_sem1 + 1;
-    $tahun = ($semester === 2) ? $year_sem2 : $year_sem1;
-    
-    $cal_month = $semester == 1 ? $bulan + 6 : $bulan;
-    $sql .= " AND MONTH(a.tanggal) = $cal_month AND YEAR(a.tanggal) = $tahun";
-    echo "⚙️ Menggunakan rentang tanggal kalender (Bulan: $cal_month, Tahun: $tahun)\n";
+if (!$found_missing) {
+    echo " ✅ Luar biasa! Semua kolom ID relasional sudah memiliki Foreign Key Constraints.\n";
 }
-
-$sql .= " ORDER BY a.tanggal ASC";
-echo "📝 SQL Query: $sql\n\n";
-
-$result = $conn->query($sql);
-$stats = [
-    'Hadir' => 0,
-    'Sakit' => 0,
-    'Izin' => 0,
-    'Alpa' => 0
-];
-
-echo "📊 Data absensi yang cocok:\n";
-while ($row = $result->fetch_assoc()) {
-    echo "   - Tanggal: {$row['tanggal']} | Status: {$row['status']}\n";
-    if (isset($stats[$row['status']])) {
-        $stats[$row['status']]++;
-    }
-}
-
-echo "\n📊 Statistik Kehadiran Final:\n";
-print_r($stats);
 
 $conn->close();
 ?>

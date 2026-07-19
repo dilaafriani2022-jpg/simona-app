@@ -19,6 +19,7 @@ class _RppmTabState extends State<RppmTab> {
   static const Color _surface = Colors.white;
   static const Color _border = Color(0xFFF0E8DF);
 
+  int _selectedSemester = 1;
   int _selectedWeek = 1;
   bool _isLoading = true;
   Map<String, dynamic>? _rppmData;
@@ -45,12 +46,7 @@ class _RppmTabState extends State<RppmTab> {
   }
 
   String _getKelompokLabel(String? namaKelas) {
-    if (namaKelas == null) return 'Kelompok B (5-6 Tahun)';
-    if (namaKelas.toLowerCase().contains('kelompok a')) {
-      return 'Kelompok A (4-5 Tahun)';
-    } else if (namaKelas.toLowerCase().contains('kelompok b')) {
-      return 'Kelompok B (5-6 Tahun)';
-    }
+    if (namaKelas == null || namaKelas.isEmpty) return 'Kelompok B (5-6 Tahun)';
     return namaKelas;
   }
 
@@ -73,7 +69,7 @@ class _RppmTabState extends State<RppmTab> {
       }
 
       // 1. Fetch linked Prosem data
-      final prosemRes = await ApiService.fetch('manage_prosem.php?id_kelas=$idKelas&semester=1&minggu_ke=$_selectedWeek');
+      final prosemRes = await ApiService.fetch('manage_prosem.php?id_kelas=$idKelas&semester=$_selectedSemester&minggu_ke=$_selectedWeek');
       if (prosemRes['status'] == 'success' && prosemRes['data'] != null) {
         _linkedProsem = prosemRes['data'];
         _bulanCtrl.text = _linkedProsem!['bulan'] ?? '';
@@ -87,7 +83,7 @@ class _RppmTabState extends State<RppmTab> {
       }
 
       // 2. Fetch RPPM data
-      final rppmRes = await ApiService.fetch('manage_rpp.php?type=rppm&id_kelas=$idKelas&semester=1&minggu_ke=$_selectedWeek');
+      final rppmRes = await ApiService.fetch('manage_rpp.php?type=rppm&id_kelas=$idKelas&semester=$_selectedSemester&minggu_ke=$_selectedWeek');
       if (rppmRes['status'] == 'success' && rppmRes['data'] != null) {
         _rppmData = rppmRes['data'];
         
@@ -141,7 +137,7 @@ class _RppmTabState extends State<RppmTab> {
         'action': 'save_rppm',
         'id_kelas': idKelas,
         'id_guru': widget.idGuru,
-        'semester': 1,
+        'semester': _selectedSemester,
         'minggu_ke': _selectedWeek,
         'kelompok': _kelompokCtrl.text.trim(),
         'bulan': _bulanCtrl.text.trim(),
@@ -182,16 +178,43 @@ class _RppmTabState extends State<RppmTab> {
       backgroundColor: _bg,
       body: Column(
         children: [
-          // Week Picker
+          // Semester & Week Picker
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             color: _surface,
             child: Row(
               children: [
-                const Icon(Icons.view_week_rounded, color: _primary),
-                const SizedBox(width: 12),
-                const Text('Pilih Minggu:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5, color: _navy)),
-                const SizedBox(width: 12),
+                // Semester selector
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: _bg,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _border),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: _selectedSemester,
+                        isExpanded: true,
+                        items: const [
+                          DropdownMenuItem(value: 1, child: Text('Semester 1', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5))),
+                          DropdownMenuItem(value: 2, child: Text('Semester 2', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5))),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _selectedSemester = val;
+                            });
+                            _loadWeekData();
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // Week selector
                 Expanded(
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -204,10 +227,10 @@ class _RppmTabState extends State<RppmTab> {
                       child: DropdownButton<int>(
                         value: _selectedWeek,
                         isExpanded: true,
-                        items: List.generate(20, (i) => i + 1).map((w) {
+                        items: List.generate(22, (i) => i + 1).map((w) {
                           return DropdownMenuItem<int>(
                             value: w,
-                            child: Text('Minggu $w', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            child: Text('Minggu $w', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
                           );
                         }).toList(),
                         onChanged: (val) {

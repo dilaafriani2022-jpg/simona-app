@@ -27,6 +27,10 @@ if ($method === 'GET') {
             $conn->query("ALTER TABLE rppm ADD COLUMN IF NOT EXISTS $col");
         }
         $conn->query("ALTER TABLE rppm ADD UNIQUE IF NOT EXISTS uk_rppm (id_kelas, semester, minggu_ke)");
+        $conn->query("ALTER TABLE rppm MODIFY COLUMN tema VARCHAR(150) NULL");
+        $conn->query("ALTER TABLE rppm MODIFY COLUMN sub_tema VARCHAR(150) NULL");
+        $conn->query("ALTER TABLE rppm MODIFY COLUMN tanggal_mulai DATE NULL");
+        $conn->query("ALTER TABLE rppm MODIFY COLUMN tanggal_selesai DATE NULL");
 
         $id_kelas  = isset($_GET['id_kelas'])  ? (int)$_GET['id_kelas']  : 0;
         $semester  = isset($_GET['semester'])  ? (int)$_GET['semester']  : 1;

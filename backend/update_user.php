@@ -127,6 +127,15 @@ try {
             $conn->query("UPDATE sekolah SET kepala_sekolah = '$escaped_name', nip_kepala_sekolah = '$escaped_nip' LIMIT 1");
         }
 
+        // ✅ Jika user adalah orang_tua, sinkronkan NISN baru ke tabel anak
+        if ($role === 'orang_tua' && isset($newNisn) && !empty($newNisn)) {
+            $escaped_nisn = $conn->real_escape_string($newNisn);
+            // 1. Update NISN pada anak-anak yang sudah terhubung dengan orang tua ini
+            $conn->query("UPDATE anak SET nisn = '$escaped_nisn' WHERE id_ortu = $id");
+            // 2. Hubungkan juga anak lain yang memiliki NISN ini tetapi belum terhubung
+            $conn->query("UPDATE anak SET id_ortu = $id WHERE nisn = '$escaped_nisn'");
+        }
+
         logActivity(getPdo(), "User diperbarui", "Pengguna '{$name}' ({$role}) berhasil diperbarui", "user", "edit");
         echo json_encode(["status" => "success", "message" => "User updated successfully"]);
     } else {

@@ -22,7 +22,7 @@ class ApiService {
   // ANDROID EMULATOR (10.0.2.2 = localhost PC dari emulator)
   static const String androidUrl = "http://10.0.2.2/monak/backend";
 
-  static const String physicalDeviceUrl = "http://172.16.71.98/monak/backend";
+  static const String physicalDeviceUrl = "http://172.16.71.241/monak/backend";
 
   // HOSTING
   static const String onlineUrl =
@@ -907,6 +907,8 @@ static Future<Map<String, dynamic>> addOrtu({
     }
   }
 }
+
+
 
 
 

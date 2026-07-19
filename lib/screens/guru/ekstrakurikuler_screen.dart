@@ -124,118 +124,140 @@ class _EkstrakurikulerScreenState extends State<EkstrakurikulerScreen> {
       context: context,
       barrierDismissible: !isSaving,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setStateDialog) => Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 620),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: _amber.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(isEdit ? Icons.edit_note_rounded : Icons.emoji_events_rounded, color: _amber, size: 26),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      isEdit ? 'Edit Data Ekskul' : 'Tambah Partisipasi Ekskul',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: _slateDark),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      isEdit
-                          ? 'Perbarui catatan kegiatan ekstrakurikuler anak'
-                          : 'Catat keikutsertaan anak pada program ekstrakurikuler',
-                      style: const TextStyle(fontSize: 12.5, color: _slate),
-                    ),
-                    const SizedBox(height: 22),
+        builder: (ctx, setStateDialog) {
+          final screenHeight = MediaQuery.of(ctx).size.height;
+          final keyboardHeight = MediaQuery.of(ctx).viewInsets.bottom;
+          final maxDialogHeight = screenHeight - keyboardHeight - 50;
 
-                    _FieldLabel('Anak Didik'),
-                    const SizedBox(height: 6),
-                    isEdit
-                        ? Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            child: AnimatedPadding(
+              padding: EdgeInsets.only(bottom: keyboardHeight),
+              duration: const Duration(milliseconds: 100),
+              curve: Curves.decelerate,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: maxDialogHeight > 620 ? 620 : (maxDialogHeight > 300 ? maxDialogHeight : 300),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header
+                      Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
                             decoration: BoxDecoration(
-                              color: _bg,
+                              color: _amber.withOpacity(0.12),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: _border),
                             ),
-                            child: Text(
-                              item['nama_anak'] ?? '-',
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: _slateDark),
+                            child: Icon(isEdit ? Icons.edit_note_rounded : Icons.emoji_events_rounded, color: _amber, size: 22),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isEdit ? 'Edit Data Ekskul' : 'Tambah Partisipasi Ekskul',
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _slateDark),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  isEdit
+                                      ? 'Perbarui catatan kegiatan ekstrakurikuler anak'
+                                      : 'Catat keikutsertaan anak pada program ekstrakurikuler',
+                                  style: const TextStyle(fontSize: 11, color: _slate),
+                                ),
+                              ],
                             ),
-                          )
-                        : DropdownButtonFormField<String>(
-                            value: selectedAnak?.toString(),
-                            hint: Text('Pilih anak didik', style: TextStyle(color: _slate.withOpacity(0.6), fontSize: 14)),
-                            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: _slate),
-                            decoration: _inputDecoration(),
-                            items: _anakList
-                                .map<DropdownMenuItem<String>>((s) => DropdownMenuItem(
-                                      value: s['id'].toString(),
-                                      child: Text(s['nama_anak'] ?? '-'),
-                                    ))
-                                .toList(),
-                            onChanged: (v) => setStateDialog(() => selectedAnak = int.tryParse(v ?? '')),
                           ),
-                    const SizedBox(height: 16),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
 
-                    _FieldLabel('Nama Ekstrakurikuler'),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: namaCtrl,
-                      decoration: _inputDecoration(hint: 'Contoh: Pramuka, Futsal, Tari, Mewarnai'),
-                      onChanged: (val) {
-                        setStateDialog(() {});
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    // Suggestion Chips
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: _suggestedNames.take(6).map((name) {
-                        return ChoiceChip(
-                          label: Text(name, style: const TextStyle(fontSize: 11.5)),
-                          selected: namaCtrl.text.trim().toLowerCase() == name.toLowerCase(),
-                          selectedColor: _primary.withOpacity(0.2),
-                          backgroundColor: _bg,
-                          labelStyle: TextStyle(
-                            color: namaCtrl.text.trim().toLowerCase() == name.toLowerCase() ? _primaryDark : _slateDark,
-                            fontWeight: namaCtrl.text.trim().toLowerCase() == name.toLowerCase() ? FontWeight.bold : FontWeight.normal,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            side: BorderSide(color: namaCtrl.text.trim().toLowerCase() == name.toLowerCase() ? _primary : _border),
-                          ),
-                          onSelected: (selected) {
-                            if (selected) {
-                              setStateDialog(() {
-                                namaCtrl.text = name;
-                              });
-                            }
-                          },
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 16),
-
-                    Row(
-                      children: [
-                        Expanded(
+                      // Form Fields (Scrollable)
+                      Expanded(
+                        child: SingleChildScrollView(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              _FieldLabel('Anak Didik'),
+                              const SizedBox(height: 6),
+                              isEdit
+                                  ? Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: _bg,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: _border),
+                                      ),
+                                      child: Text(
+                                        item['nama_anak'] ?? '-',
+                                        style: const TextStyle(fontWeight: FontWeight.bold, color: _slateDark),
+                                      ),
+                                    )
+                                  : DropdownButtonFormField<String>(
+                                      value: selectedAnak?.toString(),
+                                      hint: Text('Pilih anak didik', style: TextStyle(color: _slate.withOpacity(0.6), fontSize: 14)),
+                                      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: _slate),
+                                      decoration: _inputDecoration(),
+                                      items: _anakList
+                                          .map<DropdownMenuItem<String>>((s) => DropdownMenuItem(
+                                                value: s['id'].toString(),
+                                                child: Text(s['nama_anak'] ?? '-'),
+                                              ))
+                                          .toList(),
+                                      onChanged: (v) => setStateDialog(() => selectedAnak = int.tryParse(v ?? '')),
+                                    ),
+                              const SizedBox(height: 16),
+
+                              _FieldLabel('Nama Ekstrakurikuler'),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: namaCtrl,
+                                decoration: _inputDecoration(hint: 'Contoh: Pramuka, Futsal, Tari, Mewarnai'),
+                                onChanged: (val) {
+                                  setStateDialog(() {});
+                                },
+                              ),
+                              const SizedBox(height: 8),
+                              // Suggestion Chips
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 4,
+                                children: _suggestedNames.take(6).map((name) {
+                                  return ChoiceChip(
+                                    label: Text(name, style: const TextStyle(fontSize: 11.5)),
+                                    selected: namaCtrl.text.trim().toLowerCase() == name.toLowerCase(),
+                                    selectedColor: _primary.withOpacity(0.2),
+                                    backgroundColor: _bg,
+                                    labelStyle: TextStyle(
+                                      color: namaCtrl.text.trim().toLowerCase() == name.toLowerCase() ? _primaryDark : _slateDark,
+                                      fontWeight: namaCtrl.text.trim().toLowerCase() == name.toLowerCase() ? FontWeight.bold : FontWeight.normal,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                      side: BorderSide(color: namaCtrl.text.trim().toLowerCase() == name.toLowerCase() ? _primary : _border),
+                                    ),
+                                    onSelected: (selected) {
+                                      if (selected) {
+                                        setStateDialog(() {
+                                          namaCtrl.text = name;
+                                        });
+                                      }
+                                    },
+                                  );
+                                }).toList(),
+                              ),
+                              const SizedBox(height: 16),
+
                               _FieldLabel('Semester'),
                               const SizedBox(height: 6),
                               DropdownButtonFormField<int>(
@@ -247,103 +269,105 @@ class _EkstrakurikulerScreenState extends State<EkstrakurikulerScreen> {
                                 ],
                                 onChanged: (v) => setStateDialog(() => selectedSemester = v ?? 1),
                               ),
+                              const SizedBox(height: 16),
+
+                              _FieldLabel('Deskripsi/Catatan Perkembangan', optional: true),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: catatanCtrl,
+                                maxLines: 3,
+                                decoration: _inputDecoration(hint: 'Contoh: Anak aktif mengikuti latihan dan menguasai gerakan dasar tari daerah dengan baik.'),
+                              ),
+                              const SizedBox(height: 8),
                             ],
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
+                      ),
+                      const SizedBox(height: 16),
 
-                    _FieldLabel('Deskripsi/Catatan Perkembangan', optional: true),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: catatanCtrl,
-                      maxLines: 3,
-                      decoration: _inputDecoration(hint: 'Contoh: Anak aktif mengikuti latihan dan menguasai gerakan dasar tari daerah dengan baik.'),
-                    ),
-                    const SizedBox(height: 24),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: isSaving ? null : () => Navigator.pop(ctx),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 13),
-                              side: BorderSide(color: _border),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      // Actions
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: isSaving ? null : () => Navigator.pop(ctx),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 13),
+                                side: BorderSide(color: _border),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: const Text('Batal', style: TextStyle(color: _slate, fontWeight: FontWeight.w600)),
                             ),
-                            child: const Text('Batal', style: TextStyle(color: _slate, fontWeight: FontWeight.w600)),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: isSaving
-                                ? null
-                                : () async {
-                                    if (selectedAnak == null) {
-                                      _showSnack('Pilih anak didik terlebih dahulu', isError: true);
-                                      return;
-                                    }
-                                    if (namaCtrl.text.trim().isEmpty) {
-                                      _showSnack('Nama ekstrakurikuler wajib diisi', isError: true);
-                                      return;
-                                    }
-
-                                    setStateDialog(() => isSaving = true);
-
-                                    final payload = {
-                                      'action': 'add_anak_ekstra',
-                                      'id': isEdit ? item['id'] : null,
-                                      'id_anak': selectedAnak,
-                                      'id_guru': widget.idGuru ?? 2,
-                                      'nama_ekstrakurikuler': namaCtrl.text.trim(),
-                                      'semester': selectedSemester,
-                                      'prestasi': '',
-                                      'catatan': catatanCtrl.text.trim(),
-                                    };
-
-                                    try {
-                                      final res = await ApiService.post('manage_ekstrakurikuler.php', payload);
-                                      if (!mounted) return;
-                                      if (res['status'] == 'success') {
-                                        await _loadAnakEkstra();
-                                        await _loadSuggestions();
-                                        Navigator.pop(ctx);
-                                        _showSnack(isEdit ? 'Data berhasil diperbarui' : 'Data berhasil ditambahkan');
-                                      } else {
-                                        setStateDialog(() => isSaving = false);
-                                        _showSnack(res['message'] ?? 'Gagal menyimpan data', isError: true);
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: isSaving
+                                  ? null
+                                  : () async {
+                                      if (selectedAnak == null) {
+                                        _showSnack('Pilih anak didik terlebih dahulu', isError: true);
+                                        return;
                                       }
-                                    } catch (e) {
-                                      setStateDialog(() => isSaving = false);
-                                      _showSnack('Terjadi kesalahan: $e', isError: true);
-                                    }
-                                  },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _primary,
-                              padding: const EdgeInsets.symmetric(vertical: 13),
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      if (namaCtrl.text.trim().isEmpty) {
+                                        _showSnack('Nama ekstrakurikuler wajib diisi', isError: true);
+                                        return;
+                                      }
+
+                                      setStateDialog(() => isSaving = true);
+
+                                      final payload = {
+                                        'action': 'add_anak_ekstra',
+                                        'id': isEdit ? item['id'] : null,
+                                        'id_anak': selectedAnak,
+                                        'id_guru': widget.idGuru ?? 2,
+                                        'nama_ekstrakurikuler': namaCtrl.text.trim(),
+                                        'semester': selectedSemester,
+                                        'prestasi': '',
+                                        'catatan': catatanCtrl.text.trim(),
+                                      };
+
+                                      try {
+                                        final res = await ApiService.post('manage_ekstrakurikuler.php', payload);
+                                        if (!mounted) return;
+                                        if (res['status'] == 'success') {
+                                          await _loadAnakEkstra();
+                                          await _loadSuggestions();
+                                          Navigator.pop(ctx);
+                                          _showSnack(isEdit ? 'Data berhasil diperbarui' : 'Data berhasil ditambahkan');
+                                        } else {
+                                          setStateDialog(() => isSaving = false);
+                                          _showSnack(res['message'] ?? 'Gagal menyimpan data', isError: true);
+                                        }
+                                      } catch (e) {
+                                        setStateDialog(() => isSaving = false);
+                                        _showSnack('Terjadi kesalahan: $e', isError: true);
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _primary,
+                                padding: const EdgeInsets.symmetric(vertical: 13),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: isSaving
+                                  ? const SizedBox(
+                                      height: 18,
+                                      width: 18,
+                                      child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
+                                    )
+                                  : const Text('Simpan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                             ),
-                            child: isSaving
-                                ? const SizedBox(
-                                    height: 18,
-                                    width: 18,
-                                    child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
-                                  )
-                                : const Text('Simpan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
+          );
+        }
       ),
     );
   }

@@ -716,8 +716,10 @@ class _DashboardOrtuState extends State<DashboardOrtu>
                               if (!mounted) return;
 
                               if (res['status'] == 'success') {
-                                Navigator.pop(context);
-                                ScaffoldMessenger.of(context).showSnackBar(
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                }
+                                ScaffoldMessenger.of(this.context).showSnackBar(
                                   SnackBar(
                                     content: const Text('Password berhasil diperbarui ✓'),
                                     backgroundColor: _green,
@@ -727,7 +729,7 @@ class _DashboardOrtuState extends State<DashboardOrtu>
                                 );
                               } else {
                                 setModalState(() => isSaving = false);
-                                ScaffoldMessenger.of(context).showSnackBar(
+                                ScaffoldMessenger.of(this.context).showSnackBar(
                                   SnackBar(
                                     content: Text(res['message'] ?? 'Gagal mengubah password'),
                                     backgroundColor: _rose,
@@ -738,14 +740,14 @@ class _DashboardOrtuState extends State<DashboardOrtu>
                               }
                             } catch (e) {
                               setModalState(() => isSaving = false);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Error: $e'),
-                                  backgroundColor: _rose,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                              );
+                              ScaffoldMessenger.of(this.context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Error: $e'),
+                                    backgroundColor: _rose,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                );
                             }
                           },
                           style: ElevatedButton.styleFrom(

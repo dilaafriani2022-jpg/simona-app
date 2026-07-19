@@ -231,10 +231,36 @@ function getRatingCounts($conn, $aspek_ids, $semester, $bulan_filter_val, $id_ke
 }
 
 // 3. STATISTIK PERKEMBANGAN ASPEK
+// Query all aspects to map names to IDs dynamically to support both legacy (6 aspects) and Kurikulum Merdeka (3 aspects) database schemas
+$res_aspek = $conn->query("SELECT id, nama_aspek FROM aspek_penilaian");
+$agama_ids = [];
+$jati_diri_ids = [];
+$steam_ids = [];
+
+if ($res_aspek) {
+    while ($row = $res_aspek->fetch_assoc()) {
+        $id = (int)$row['id'];
+        $name = strtolower($row['nama_aspek']);
+        
+        if (strpos($name, 'agama') !== false || strpos($name, 'moral') !== false) {
+            $agama_ids[] = $id;
+        } elseif (strpos($name, 'jati diri') !== false || strpos($name, 'fisik') !== false || strpos($name, 'motorik') !== false || strpos($name, 'sosial') !== false || strpos($name, 'emosional') !== false) {
+            $jati_diri_ids[] = $id;
+        } elseif (strpos($name, 'literasi') !== false || strpos($name, 'steam') !== false || strpos($name, 'sains') !== false || strpos($name, 'kognitif') !== false || strpos($name, 'bahasa') !== false || strpos($name, 'seni') !== false) {
+            $steam_ids[] = $id;
+        }
+    }
+}
+
+// Fallbacks if mapping is empty
+if (empty($agama_ids)) $agama_ids = [1];
+if (empty($jati_diri_ids)) $jati_diri_ids = [2, 5];
+if (empty($steam_ids)) $steam_ids = [3, 4, 6];
+
 $aspek_stats = [
-    "agama" => getRatingCounts($conn, [1], $semester, $bulan_filter_val, $id_kelas_filter, $tgl_mulai, $tgl_akhir),
-    "jati_diri" => getRatingCounts($conn, [2, 5], $semester, $bulan_filter_val, $id_kelas_filter, $tgl_mulai, $tgl_akhir),
-    "steam" => getRatingCounts($conn, [3, 4, 6], $semester, $bulan_filter_val, $id_kelas_filter, $tgl_mulai, $tgl_akhir)
+    "agama" => getRatingCounts($conn, $agama_ids, $semester, $bulan_filter_val, $id_kelas_filter, $tgl_mulai, $tgl_akhir),
+    "jati_diri" => getRatingCounts($conn, $jati_diri_ids, $semester, $bulan_filter_val, $id_kelas_filter, $tgl_mulai, $tgl_akhir),
+    "steam" => getRatingCounts($conn, $steam_ids, $semester, $bulan_filter_val, $id_kelas_filter, $tgl_mulai, $tgl_akhir)
 ];
 
 // 4. STATISTIK ABSENSI SEMESTER

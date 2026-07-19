@@ -418,7 +418,6 @@ class _DashboardGuruState extends State<DashboardGuru>
     );
   }
 
-  // ── Hero Banner ───────────────────────────────────────────────────────────
   Widget _buildHeroBanner() {
     final namaGuru  = widget.user['name']       ?? 'Guru';
     final namaKelas = widget.user['nama_kelas'] ?? 'Kelompok A';
@@ -442,12 +441,16 @@ class _DashboardGuruState extends State<DashboardGuru>
                 decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(14)),
                 child: const Icon(Icons.school_rounded, color: Colors.white, size: 24)),
               const SizedBox(width: 14),
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Selamat Datang,',
-                  style: TextStyle(color: Colors.white60, fontSize: 12)),
-                Text(namaGuru,
-                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-              ]),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Selamat Datang,',
+                    style: TextStyle(color: Colors.white60, fontSize: 12)),
+                  Text(namaGuru,
+                    style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1),
+                ]),
+              ),
             ]),
             const SizedBox(height: 12),
             Container(
@@ -456,42 +459,48 @@ class _DashboardGuruState extends State<DashboardGuru>
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 const Icon(Icons.location_on_rounded, color: Colors.white70, size: 14),
                 const SizedBox(width: 4),
-                Text('TK Negeri 2 Bengkalis — $namaKelas',
-                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)),
+                Flexible(
+                  child: Text('TK Negeri 2 Bengkalis — $namaKelas',
+                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1),
+                ),
               ])),
           ])),
       ]),
     );
   }
 
-  // ── Date Badge ────────────────────────────────────────────────────────────
   Widget _buildDateBadge() {
     final now    = DateTime.now();
     final days   = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
     final months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
-    return Row(children: [
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: _green100,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: _green500.withOpacity(0.3))),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.calendar_today_rounded, size: 14, color: _green700),
-          const SizedBox(width: 6),
-          Text('${days[now.weekday % 7]}, ${now.day} ${months[now.month - 1]} ${now.year}',
-            style: const TextStyle(fontSize: 12, color: _green700, fontWeight: FontWeight.w600)),
-        ])),
-      const SizedBox(width: 8),
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(color: _navy.withOpacity(0.08), borderRadius: BorderRadius.circular(20)),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.access_time_rounded, size: 14, color: _navy),
-          const SizedBox(width: 6),
-          Text(_tahunAjaran, style: const TextStyle(fontSize: 12, color: _navy, fontWeight: FontWeight.w600)),
-        ])),
-    ]);
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: _green100,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: _green500.withOpacity(0.3))),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.calendar_today_rounded, size: 14, color: _green700),
+            const SizedBox(width: 6),
+            Text('${days[now.weekday % 7]}, ${now.day} ${months[now.month - 1]} ${now.year}',
+              style: const TextStyle(fontSize: 12, color: _green700, fontWeight: FontWeight.w600)),
+          ])),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(color: _navy.withOpacity(0.08), borderRadius: BorderRadius.circular(20)),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.access_time_rounded, size: 14, color: _navy),
+            const SizedBox(width: 6),
+            Text(_tahunAjaran, style: const TextStyle(fontSize: 12, color: _navy, fontWeight: FontWeight.w600)),
+          ])),
+      ],
+    );
   }
 
   // ── Stat Row ──────────────────────────────────────────────────────  // ── Agenda Card ─────────────────────────────────────────────────────────
@@ -837,23 +846,26 @@ class _DashboardGuruState extends State<DashboardGuru>
           // Konten tengah
           Center(child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [m.color, m.color.withOpacity(0.75)],
-                    begin: Alignment.topLeft, end: Alignment.bottomRight),
-                  borderRadius: BorderRadius.circular(13)),
-                child: Icon(m.icon, color: Colors.white, size: 24)),
-              const SizedBox(height: 8),
-              Text(m.label,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 11,
-                  color: Colors.grey.shade800),
-                textAlign: TextAlign.center,
-                maxLines: 2, overflow: TextOverflow.ellipsis),
-            ]),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [m.color, m.color.withOpacity(0.75)],
+                      begin: Alignment.topLeft, end: Alignment.bottomRight),
+                    borderRadius: BorderRadius.circular(13)),
+                  child: Icon(m.icon, color: Colors.white, size: 24)),
+                const SizedBox(height: 8),
+                Text(m.label,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 11,
+                    color: Colors.grey.shade800),
+                  textAlign: TextAlign.center,
+                  maxLines: 2, overflow: TextOverflow.ellipsis),
+              ]),
+            ),
           )),
           // Badge notif (pojok kanan atas)
           if (m.badge != null)
@@ -893,7 +905,8 @@ class _DashboardGuruState extends State<DashboardGuru>
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2))]),
       child: Column(children: _belumHadirList.asMap().entries.map((e) {
         final i    = e.key; final nama = e.value;
-        final init = nama.trim().split(' ').map((s) => s[0]).take(2).join().toUpperCase();
+        final parts = nama.trim().split(' ').where((s) => s.isNotEmpty).toList();
+        final init = parts.isNotEmpty ? parts.map((s) => s[0]).take(2).join().toUpperCase() : '?';
         return Column(children: [
           Padding(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             child: Row(children: [

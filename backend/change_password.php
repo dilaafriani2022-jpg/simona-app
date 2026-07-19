@@ -18,8 +18,8 @@ if (!$id || !$old_pass || !$new_pass) {
     exit;
 }
 
-// Ambil password lama
-$stmt = $conn->prepare("SELECT password FROM users WHERE id = ? LIMIT 1");
+// Ambil password lama & role
+$stmt = $conn->prepare("SELECT password, role FROM users WHERE id = ? LIMIT 1");
 $stmt->bind_param("i", $id);
 $stmt->execute();
 $row = $stmt->get_result()->fetch_assoc();
@@ -32,6 +32,15 @@ if (!$row) {
 // Verifikasi password lama (support plain-text lama & bcrypt baru)
 $valid = password_verify($old_pass, $row['password'])
       || $old_pass === $row['password'];
+
+if (!$valid && $row['role'] === 'orang_tua') {
+    // Fallback: Cek apakah cocok dengan NISN anak yang terhubung (default login credentials)
+    $escaped_pass = $conn->real_escape_string($old_pass);
+    $check_res = $conn->query("SELECT id FROM anak WHERE id_ortu = $id AND nisn = '$escaped_pass' LIMIT 1");
+    if ($check_res && $check_res->num_rows > 0) {
+        $valid = true;
+    }
+}
 
 if (!$valid) {
     echo json_encode(["status" => "error", "message" => "Password lama tidak sesuai"]);

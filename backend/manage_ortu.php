@@ -290,6 +290,16 @@ if ($method === 'POST') {
                 if (!$conn->query("UPDATE anak SET id_ortu = $ortu_id WHERE id IN ($ids_str)")) {
                     throw new Exception($conn->error);
                 }
+
+                // ✅ Sinkronkan users.nisn dengan NISN anak pertama agar konsisten
+                $resFirstAnak = $conn->query("SELECT nisn FROM anak WHERE id_ortu = $ortu_id LIMIT 1");
+                if ($resFirstAnak && $rowFirstAnak = $resFirstAnak->fetch_assoc()) {
+                    $firstNisn = $rowFirstAnak['nisn'];
+                    $conn->query("UPDATE users SET nisn = '$firstNisn' WHERE id = $ortu_id AND role = 'orang_tua'");
+                }
+            } else {
+                // Jika tidak ada anak terhubung, set users.nisn = NULL
+                $conn->query("UPDATE users SET nisn = NULL WHERE id = $ortu_id AND role = 'orang_tua'");
             }
             
             logActivity(

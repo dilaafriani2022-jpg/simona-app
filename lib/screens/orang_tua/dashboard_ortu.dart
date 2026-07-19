@@ -541,12 +541,12 @@ class _DashboardOrtuState extends State<DashboardOrtu>
     final formKey = GlobalKey<FormState>();
 
     showModalBottomSheet(
-      context: context,
+      context: this.context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
+      builder: (sheetCtx) {
         return StatefulBuilder(
-          builder: (context, setModalState) {
+          builder: (modalCtx, setModalState) {
             return Container(
               decoration: const BoxDecoration(
                 color: _surface,
@@ -559,7 +559,7 @@ class _DashboardOrtuState extends State<DashboardOrtu>
                 left: 20,
                 right: 20,
                 top: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                bottom: MediaQuery.of(sheetCtx).viewInsets.bottom + 20,
               ),
               child: SingleChildScrollView(
                 child: Form(
@@ -716,8 +716,8 @@ class _DashboardOrtuState extends State<DashboardOrtu>
                               if (!mounted) return;
 
                               if (res['status'] == 'success') {
-                                if (context.mounted) {
-                                  Navigator.pop(context);
+                                if (sheetCtx.mounted) {
+                                  Navigator.pop(sheetCtx);
                                 }
                                 ScaffoldMessenger.of(this.context).showSnackBar(
                                   SnackBar(
@@ -784,11 +784,7 @@ class _DashboardOrtuState extends State<DashboardOrtu>
           },
         );
       },
-    ).whenComplete(() {
-      oldPassCtrl.dispose();
-      newPassCtrl.dispose();
-      confPassCtrl.dispose();
-    });
+    );
   }
 
   Future<void> _fetchKehadiranOnly() async {
